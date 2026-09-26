@@ -9,17 +9,17 @@ help:  ## 列出带说明的目标
 	@grep -E '^[a-z][a-z0-9-]*:.*?## ' $(MAKEFILE_LIST) \
 	  | sed 's/:.*## /\t/' | sort | awk -F'\t' '{printf "  %-22s %s\n", $$1, $$2}'
 
-# -p 独立 project 名:不加会与主 compose 同落 mercurydesk project,两边的 minio 服务同名相撞
+# -p 独立 project 名:不加会与主 compose 同落 commerce-support-agent project,两边的 minio 服务同名相撞
 langfuse-up:
-	docker compose -p mercurydesk-langfuse -f docker-compose.langfuse.yml up -d
-	@echo "Langfuse 起中: http://localhost:3000 (admin@mercurydesk.local / mercurydesk123)"
+	docker compose -p commerce-support-agent-langfuse -f docker-compose.langfuse.yml up -d
+	@echo "Langfuse 起中: http://localhost:3000 (admin@commerce-support-agent.local / commerce-support-agent123)"
 	@echo "首次就绪约 2-3 分钟;key 已 headless 预置,写 .env:"
-	@echo "  LANGFUSE_PUBLIC_KEY=pk-lf-mercurydesk-local"
-	@echo "  LANGFUSE_SECRET_KEY=sk-lf-mercurydesk-local"
+	@echo "  LANGFUSE_PUBLIC_KEY=pk-lf-commerce-support-agent-local"
+	@echo "  LANGFUSE_SECRET_KEY=sk-lf-commerce-support-agent-local"
 	@echo "  LANGFUSE_BASE_URL=http://localhost:3000"
 
 langfuse-down:
-	docker compose -p mercurydesk-langfuse -f docker-compose.langfuse.yml down
+	docker compose -p commerce-support-agent-langfuse -f docker-compose.langfuse.yml down
 
 calibrate-confidence:  ## 置信度阈值校准(需 milvus + 上游可调通 + 知识库已建)
 	PYTHONPATH=. uv run python scripts/calibrate_confidence.py
@@ -113,7 +113,7 @@ judge-check:  ## 忠实度裁判回归(重放台账个案的证据+答案,和人
 	PYTHONPATH=. uv run python scripts/judge_check.py
 
 seed:
-	docker exec -i mercurydesk-mysql mysql --default-character-set=utf8mb4 -uroot -proot mercurydesk < sql/ch02-seed.sql
+	docker exec -i commerce-support-agent-mysql mysql --default-character-set=utf8mb4 -uroot -proot commerce-support-agent < sql/ch02-seed.sql
 
 test:
 	uv run pytest -v
@@ -153,13 +153,13 @@ eval-retrieval:
 	PYTHONPATH=. uv run python scripts/eval_retrieval.py
 
 seed-conv:
-	docker exec -i mercurydesk-mysql mysql --default-character-set=utf8mb4 -uroot -proot mercurydesk < sql/ch03-seed.sql
+	docker exec -i commerce-support-agent-mysql mysql --default-character-set=utf8mb4 -uroot -proot commerce-support-agent < sql/ch03-seed.sql
 
 eval-mining:
 	PYTHONPATH=. uv run python scripts/eval_mining.py
 
 kb-reset:
-	docker exec -i mercurydesk-mysql mysql -uroot -proot mercurydesk -e "SET FOREIGN_KEY_CHECKS=0; DELETE FROM knowledge_chunks; DELETE FROM qa_extraction_staging; SET FOREIGN_KEY_CHECKS=1;"
+	docker exec -i commerce-support-agent-mysql mysql -uroot -proot commerce-support-agent -e "SET FOREIGN_KEY_CHECKS=0; DELETE FROM knowledge_chunks; DELETE FROM qa_extraction_staging; SET FOREIGN_KEY_CHECKS=1;"
 	PYTHONPATH=. uv run python -c "from app.kb import milvus_client as m; m.drop(m.get_client(), 'knowledge')"
 	@echo "KB 已重置(Milvus Standalone drop collection)。重跑: make kb-build && make kb-vectorize"
 

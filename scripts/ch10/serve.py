@@ -19,7 +19,7 @@ from scripts.ch10.inference_lib import apply_threshold
 
 DIR = pathlib.Path("data/ch10/onnx")
 
-app = FastAPI(title="MercuryDesk Topic Classifier")
+app = FastAPI(title="commerce-support-agent Topic Classifier")
 _sess = ort.InferenceSession(str(DIR / "model.onnx"), providers=["CPUExecutionProvider"])
 _tok = Tokenizer.from_file(str(DIR / "tokenizer.json"))
 _tok.enable_truncation(max_length=128)

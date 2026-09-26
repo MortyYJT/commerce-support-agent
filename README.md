@@ -1,4 +1,4 @@
-# MercuryDesk
+# commerce-support-agent
 
 An e-commerce customer support agent built with FastAPI, LangGraph, MySQL, and Milvus. It combines cited knowledge answers, order and logistics tools, human-confirmed ticket and refund flows, and an offline topic-classification pipeline.
 

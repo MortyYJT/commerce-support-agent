@@ -1,4 +1,4 @@
-# MercuryDesk 部署任务书
+# commerce-support-agent 部署任务书
 
 这份文件是写给 AI 编程助手执行的。把它交给 Claude Code、Cursor 之类的工具，说一句
 「按 DEPLOY.md 把项目部署起来」就行，它会自己走完下面的步骤。
@@ -9,7 +9,7 @@
 
 ## 目标
 
-在本机把 MercuryDesk 跑起来，最终验收标准只有一条：
+在本机把 commerce-support-agent 跑起来，最终验收标准只有一条：
 
 **浏览器打开 <http://localhost:8000>，问「订单 1001 的物流到哪了」，能看到回答，
 并且回答上方出现两个工具调用标记（`query_order` 和 `query_logistics`）。**
@@ -111,7 +111,7 @@ make seed-conv   # 历史会话(ch03 挖知识用)
 第 3 步首启时这两个脚本已经自动跑过一遍了，这里再跑是为了重复部署或数据被改乱时重灌。
 种子脚本幂等，重复执行不会出问题。
 
-**验收**：`docker exec -i mercurydesk-mysql mysql -uroot -proot mercurydesk -e "SELECT COUNT(*) FROM faq;"`
+**验收**：`docker exec -i commerce-support-agent-mysql mysql -uroot -proot commerce-support-agent -e "SELECT COUNT(*) FROM faq;"`
 返回的数字大于 0。
 
 ## 第 5 步 建知识库

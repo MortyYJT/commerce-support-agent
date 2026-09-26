@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI):
     await runtime.close_graph()
 
 
-app = FastAPI(title="MercuryDesk", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="commerce-support-agent", version="0.1.0", lifespan=lifespan)
 app.include_router(actions_router)
 app.include_router(chat_router)
 app.include_router(extract_router)
