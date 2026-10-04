@@ -143,6 +143,63 @@
     keepScrolledToBottom = isNearBottom();
   });
 
+  function createFishIcon() {
+    const namespace = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(namespace, "svg");
+    svg.setAttribute("class", "assistant-fish-icon");
+    svg.setAttribute("viewBox", "0 0 48 48");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+
+    const fishShapes = [
+      {
+        tag: "path",
+        attributes: {
+          d: "M14 24c4.1-7.1 10.4-10.3 17.2-9.4 6 .8 10.4 4.1 12.8 9.4-2.4 5.3-6.8 8.6-12.8 9.4C24.4 34.3 18.1 31.1 14 24Z",
+          fill: "none"
+        }
+      },
+      {
+        tag: "path",
+        attributes: {
+          d: "m14 24-8-7v14l8-7Z",
+          fill: "none"
+        }
+      },
+      {
+        tag: "path",
+        attributes: {
+          d: "M25.5 16.3c-2 4.4-2 11 0 15.4",
+          fill: "none"
+        }
+      },
+      {
+        tag: "circle",
+        attributes: {
+          cx: "35.5",
+          cy: "21.3",
+          r: "1.2",
+          fill: "currentColor"
+        }
+      }
+    ];
+
+    fishShapes.forEach(function (shape) {
+      const node = document.createElementNS(namespace, shape.tag);
+      Object.entries(shape.attributes).forEach(function (entry) {
+        node.setAttribute(entry[0], entry[1]);
+      });
+      if (shape.tag === "path") {
+        node.setAttribute("stroke", "currentColor");
+        node.setAttribute("stroke-width", "2.1");
+        node.setAttribute("stroke-linecap", "round");
+        node.setAttribute("stroke-linejoin", "round");
+      }
+      svg.appendChild(node);
+    });
+    return svg;
+  }
+
   function createMessage(role, text) {
     const article = document.createElement("article");
     article.className = "message message-" + role;
@@ -151,7 +208,12 @@
     const avatar = document.createElement("div");
     avatar.className = "message-avatar";
     avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = role === "assistant" ? "答" : "我";
+    if (role === "assistant") {
+      avatar.classList.add("assistant-fish-avatar");
+      avatar.appendChild(createFishIcon());
+    } else {
+      avatar.textContent = "我";
+    }
 
     const main = document.createElement("div");
     main.className = "message-main";
@@ -159,7 +221,7 @@
     const label = document.createElement("div");
     label.className = "message-label";
     const author = document.createElement("span");
-    author.textContent = role === "assistant" ? "客服助手" : "你";
+    author.textContent = role === "assistant" ? "谷鱼Y的客服助手" : "你";
     label.appendChild(author);
 
     const status = document.createElement("span");
@@ -229,17 +291,19 @@
       sendButton.disabled = false;
       sendButton.setAttribute("aria-label", "停止生成");
       sendButton.title = "停止生成";
-      sendLabel.textContent = "停止";
-      sendIcon.hidden = true;
-      stopIcon.hidden = false;
+      sendIcon.toggleAttribute("hidden", true);
+      stopIcon.toggleAttribute("hidden", false);
+      sendLabel.textContent = "";
+      sendLabel.toggleAttribute("hidden", true);
     } else {
       sendButton.classList.remove("is-stop");
       sendButton.disabled = input.value.trim().length === 0;
       sendButton.setAttribute("aria-label", "发送消息");
       sendButton.title = "发送消息";
+      sendIcon.toggleAttribute("hidden", false);
+      stopIcon.toggleAttribute("hidden", true);
       sendLabel.textContent = "发送";
-      sendIcon.hidden = false;
-      stopIcon.hidden = true;
+      sendLabel.toggleAttribute("hidden", false);
     }
   }
 
@@ -586,7 +650,7 @@
       }
       activeRequest = null;
       updateComposer();
-      announce("客服助手已回复，可以继续追问。");
+      announce("谷鱼Y的客服助手已回复，可以继续追问。");
     } catch (error) {
       if (!isCurrentRequest(request)) {
         return;

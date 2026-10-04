@@ -1,14 +1,14 @@
 :root {
   color-scheme: light;
-  --ink: #1e3028;
-  --muted: #718078;
-  --line: #e5ece6;
-  --mint: #23865b;
-  --mint-dark: #176b48;
-  --mint-soft: #e3f3e9;
+  --ink: #202124;
+  --muted: #74777a;
+  --line: #e2e4e6;
+  --accent: #4d5155;
+  --accent-dark: #2f3236;
+  --fish-blue: #347fc4;
   --panel: #ffffff;
-  --canvas: #f3f7f3;
-  --danger: #a5443e;
+  --canvas: #f4f5f6;
+  --danger: #5e6266;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -17,6 +17,15 @@
 
 * {
   box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+::selection {
+  background: #dfe1e3;
+  color: #202124;
 }
 
 html,
@@ -28,7 +37,7 @@ body {
 
 body {
   background:
-    radial-gradient(circle at 12% 7%, rgba(214, 237, 220, 0.62), transparent 31rem),
+    radial-gradient(circle at 12% 7%, rgba(225, 226, 228, 0.70), transparent 31rem),
     var(--canvas);
   color: var(--ink);
 }
@@ -56,10 +65,10 @@ button {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(223, 233, 224, 0.95);
+  border: 1px solid rgba(222, 224, 226, 0.95);
   border-radius: 24px;
   background: var(--panel);
-  box-shadow: 0 24px 80px rgba(40, 71, 51, 0.10), 0 3px 12px rgba(40, 71, 51, 0.04);
+  box-shadow: 0 24px 80px rgba(35, 37, 40, 0.10), 0 3px 12px rgba(35, 37, 40, 0.04);
 }
 
 .chat-header {
@@ -87,13 +96,18 @@ button {
   place-items: center;
   flex: 0 0 auto;
   border-radius: 15px;
-  color: var(--mint);
-  background: #edf7ef;
+  color: var(--ink);
+  background: #eff0f2;
 }
 
 .brand-mark svg {
   width: 35px;
   height: 35px;
+}
+
+.fish-icon {
+  color: var(--fish-blue);
+  display: block;
 }
 
 .brand-copy h1 {
@@ -117,10 +131,10 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  border: 1px solid #dce8de;
+  border: 1px solid #dfe1e3;
   border-radius: 12px;
   background: #fff;
-  color: #385347;
+  color: #414549;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -130,12 +144,12 @@ button {
 .new-chat-button svg {
   width: 17px;
   height: 17px;
-  color: var(--mint);
+  color: var(--accent);
 }
 
 .new-chat-button:hover {
-  border-color: #c2d9c8;
-  background: #f7fbf7;
+  border-color: #c9cbce;
+  background: #f6f7f8;
 }
 
 .new-chat-button:active {
@@ -176,11 +190,11 @@ button {
   margin: 0 auto 19px;
   display: grid;
   place-items: center;
-  border: 1px solid #e1eee4;
+  border: 1px solid #e1e3e5;
   border-radius: 23px;
-  color: var(--mint);
-  background: linear-gradient(145deg, #f2faf3, #e8f5eb);
-  box-shadow: 0 9px 22px rgba(43, 123, 75, 0.08);
+  color: var(--ink);
+  background: linear-gradient(145deg, #f8f8f9, #edeef0);
+  box-shadow: 0 9px 22px rgba(35, 37, 40, 0.06);
 }
 
 .welcome-icon svg {
@@ -190,7 +204,7 @@ button {
 
 .welcome-kicker {
   margin: 0 0 7px;
-  color: var(--mint);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -198,7 +212,7 @@ button {
 
 .empty-state h2 {
   margin: 0;
-  color: #20372b;
+  color: #242629;
   font-size: clamp(22px, 3vw, 28px);
   line-height: 1.35;
   letter-spacing: -0.025em;
@@ -223,19 +237,19 @@ button {
 .suggestion {
   min-height: 38px;
   padding: 8px 13px;
-  border: 1px solid #e3ebe4;
+  border: 1px solid #e0e2e4;
   border-radius: 999px;
   background: #fff;
-  color: #496054;
+  color: #4e5256;
   font-size: 12px;
   cursor: pointer;
   transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
 }
 
 .suggestion:hover {
-  border-color: #c5deca;
-  color: var(--mint-dark);
-  background: #f5faf6;
+  border-color: #c8cace;
+  color: var(--accent-dark);
+  background: #f5f6f7;
 }
 
 .message {
@@ -263,14 +277,21 @@ button {
 }
 
 .message-assistant .message-avatar {
-  color: var(--mint-dark);
-  background: #eaf5ed;
+  color: var(--muted);
+  background: #eff0f2;
+}
+
+.assistant-fish-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+  color: var(--fish-blue);
 }
 
 .message-user .message-avatar {
   order: 2;
   color: #fff;
-  background: #648571;
+  background: #686c70;
 }
 
 .message-main {
@@ -294,13 +315,13 @@ button {
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #718078;
+  color: #74777a;
   font-size: 11px;
   line-height: 1.4;
 }
 
 .message-status {
-  color: #8a9790;
+  color: #898d91;
 }
 
 .message-assistant[data-state="failed"] .message-status {
@@ -308,27 +329,27 @@ button {
 }
 
 .message-assistant[data-state="stopped"] .message-status {
-  color: #7a7462;
+  color: #707478;
 }
 
 .message-bubble {
   min-width: 54px;
-  border: 1px solid #e8eee9;
+  border: 1px solid #e4e5e7;
   border-radius: 4px 17px 17px 17px;
   background: #fff;
-  box-shadow: 0 3px 9px rgba(31, 62, 42, 0.035);
+  box-shadow: 0 3px 9px rgba(35, 37, 40, 0.035);
 }
 
 .message-user .message-bubble {
-  border-color: #d9eee0;
+  border-color: #dedfe1;
   border-radius: 17px 4px 17px 17px;
-  background: #e6f5ea;
+  background: #f0f1f2;
 }
 
 .message-text {
   margin: 0;
   padding: 12px 15px;
-  color: #2c3c33;
+  color: #2d3033;
   font-size: 14px;
   line-height: 1.72;
   white-space: pre-wrap;
@@ -337,7 +358,7 @@ button {
 }
 
 .message-user .message-text {
-  color: #244432;
+  color: #35383b;
 }
 
 .message-assistant[data-state="streaming"] .message-text.is-streaming::after {
@@ -347,7 +368,7 @@ button {
   margin-left: 2px;
   display: inline-block;
   vertical-align: -0.15em;
-  background: var(--mint);
+  background: #7c8084;
   animation: caret-blink 900ms step-end infinite;
 }
 
@@ -356,7 +377,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #748279;
+  color: #74787c;
   font-size: 12px;
 }
 
@@ -375,7 +396,7 @@ button {
   height: 4px;
   display: block;
   border-radius: 50%;
-  background: #73a887;
+  background: #8a8e92;
   animation: dot-pulse 1.1s ease-in-out infinite;
 }
 
@@ -389,7 +410,7 @@ button {
 
 .message-note {
   margin: 7px 3px 0;
-  color: #7a8980;
+  color: #75797d;
   font-size: 11px;
   line-height: 1.55;
 }
@@ -399,17 +420,17 @@ button {
 }
 
 .message-assistant[data-state="failed"] .message-note {
-  color: #8b615d;
+  color: #65696d;
 }
 
 .message-assistant[data-state="stopped"] .message-note {
-  color: #827a67;
+  color: #65696d;
 }
 
 .composer-area {
   padding: 16px clamp(18px, 6vw, 68px) 14px;
   border-top: 1px solid var(--line);
-  background: #fcfdfc;
+  background: #fcfcfc;
 }
 
 .composer {
@@ -419,16 +440,16 @@ button {
 
 .composer-box {
   padding: 11px 11px 8px 16px;
-  border: 1px solid #dfe8e1;
+  border: 1px solid #dedfe1;
   border-radius: 17px;
   background: #fff;
-  box-shadow: 0 4px 14px rgba(40, 71, 51, 0.035);
+  box-shadow: 0 4px 14px rgba(35, 37, 40, 0.035);
   transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
 .composer-box:focus-within {
-  border-color: #9dc9aa;
-  box-shadow: 0 0 0 3px rgba(53, 143, 87, 0.09);
+  border-color: #aeb1b4;
+  box-shadow: 0 0 0 3px rgba(80, 83, 87, 0.08);
 }
 
 .composer textarea {
@@ -448,7 +469,7 @@ button {
 }
 
 .composer textarea::placeholder {
-  color: #9aa69e;
+  color: #9a9da1;
 }
 
 .composer-tools {
@@ -461,7 +482,7 @@ button {
 
 .composer-hint {
   margin: 0;
-  color: #87938b;
+  color: #7f8387;
   font-size: 11px;
   line-height: 1.4;
 }
@@ -476,7 +497,7 @@ button {
   gap: 7px;
   border: 0;
   border-radius: 11px;
-  background: var(--mint);
+  background: var(--accent);
   color: #fff;
   font-size: 13px;
   font-weight: 650;
@@ -490,7 +511,7 @@ button {
 }
 
 .send-button:hover:not(:disabled) {
-  background: var(--mint-dark);
+  background: var(--accent-dark);
 }
 
 .send-button:active:not(:disabled) {
@@ -498,29 +519,29 @@ button {
 }
 
 .send-button:disabled {
-  background: #bad5c2;
+  background: #b9bbbe;
   cursor: not-allowed;
 }
 
 .send-button.is-stop {
-  background: #60776a;
+  background: #707478;
 }
 
 .send-button.is-stop:hover {
-  background: #4c6557;
+  background: #55595d;
 }
 
 .composer-footnote {
   width: min(100%, 790px);
   margin: 8px auto 0;
-  color: #9aa59e;
+  color: #999da1;
   text-align: center;
   font-size: 10px;
   line-height: 1.4;
 }
 
 button:focus-visible {
-  outline: 3px solid rgba(35, 134, 91, 0.36);
+  outline: 3px solid rgba(96, 100, 104, 0.30);
   outline-offset: 2px;
 }
 
