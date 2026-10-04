@@ -129,3 +129,26 @@
 - 共享接口返工已完成；测试缺失模块的特殊 fallback 已简化为正常 pytest imports，历史 RED 日志继续保留。
 - Docker daemon 仍未验证；DeepSeek、流式对话、售后提取均尚未实现或验收。
 - 已回读实现者完整报告：首轮 GREEN 的唯一测试预期修正是 AnyHttpUrl 对带 /v1 路径不自动补末尾斜线；修正与字段规范一致，不是放宽产品验收条件。
+
+## 2026-10-04 — 任务 1 完成，远端 CI 检查通过
+
+### 用户关键原话
+
+- 沿用已批准的任务 1 执行指令「开始吧」，没有新增用户原话。
+
+### 关键产出与评审结论
+
+- 源码提交：0497e850a69cb79d19a2cd4832931fae09594475，已推送 codex/stage-1-mvp，进入草稿 PR #2：https://github.com/MortyYJT/commerce-support-agent/pull/2 。
+- GitHub Actions：https://github.com/MortyYJT/commerce-support-agent/actions/runs/37196370428 ，状态 completed/success；依赖安装、应用包安装、Ruff、离线 pytest 步骤均 success。
+- 状态分开报告：CI 已配置且当前源码提交检查通过；本机 API /health 已验证；本机 Docker 未验证；远端 CD 按用户要求留后续阶段。
+- 主助手判定任务 1 spec compliance 通过、code quality 通过；共享接口和启动问题已修复。任务 2–6 尚未开始，第一章 MVP 整体尚未完成。
+- main 仍为 ea7f3f369615bfe8c481ea07192c22e5f7adc510，未直接推送或合并。
+
+### 用户拒绝或纠偏
+
+- 无新增拒绝；保留用户亲自合并 PR、逐阶段学习的方式。
+
+### 翻车与返工
+
+- 远端 CI 首次运行成功，没有新增 CI 返工；既有 TDD/接口/启动返工记录保留。
+- 当前可演示的是 /health，不能把它说成对话或 DeepSeek 连通验收。
