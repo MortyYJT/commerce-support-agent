@@ -399,3 +399,55 @@
 ### 翻车与返工
 
 - 刚切换可用状态时CSS背景过渡会显示瞬间灰色；待过渡结束后发送与生成按钮均纯黑，确认不是样式遗漏。
+
+
+## 2026-10-05 — 用户规范英文工程文档与提交信息
+
+### 用户关键原话
+
+- 「你的commit message不够标准」「源代码注释，readme什么的都是英文，只有我们的note里面的计划什么的是中文」。
+- 「message要有body用-作为开头」。
+
+### 关键产出与评审结论
+
+- 主助手核对现有10条feature分支提交：基本符合Conventional Commits语法但缺少scope和body，style用于视觉配色不够准确。已推送历史按既定规则保留，不amend/rebase/force push。
+- 以后采用type(scope):英文祈使句subject，空行后必须有英文body，逐项以“- ”开头，说明改动、原因、验证。
+- AST/token审计确认Python源码与测试注释/docstrings没有中文。页面文案、客服Prompt、错误消息和测试样例属于运行数据，保留原有中文要求。
+- 已交Luna max整理英文README/贡献指南/AGENTS和验证摘要；中文计划/spec与原始验证记录迁入note，主助手验收路径与语言。无新业务功能，不新增TDD测试。
+
+### 用户拒绝或纠偏
+
+- 用户要求英文工程文本，中文只放学习note；提交不再只有一句subject，body每项必须“- ”开头。
+
+### 翻车与返工
+
+- 之前未将用户期望明确为scope+必需body，视觉配色误用style；此次写成仓库规范。已推送提交不通过重写历史修正。
+
+
+## 2026-10-05 — 英文工程文档与提交规范整理finish
+
+### 用户关键原话
+
+- 沿用「源代码注释，readme什么的都是英文，只有我们的note里面的计划什么的是中文」「message要有body用-作为开头」。
+
+### 关键产出与评审结论
+
+- Luna max完成英文README、CONTRIBUTING、AGENTS和docs/verification/chat-ui-results.md摘要；主助手独立验收4份公开Markdown无中文、7个本地链接有效、源码与测试无中文注释/docstrings。
+- 中文学习文件迁移映射：
+  - docs/superpowers/specs/2026-10-04-stage-1-mvp-design.md → note/superpowers/specs/2026-10-04-stage-1-mvp-design.md。
+  - docs/superpowers/plans/2026-10-04-stage-1-mvp.md → note/superpowers/plans/2026-10-04-stage-1-mvp.md。
+  - docs/verification/chat-ui-results.md原文 → note/verification/chat-ui-results.md；原docs路径现在是英文摘要。
+- 原始中文验收文件与上一提交内容逐字节相同，未把翻译后的回复伪装成英文模型实测。历史note中的旧路径反映当时状态，上述映射给出当前位置；执行ledger当前plan-path已同步。
+- 已明确本仓库额外要求：type(scope):英文祈使句subject，空行后英文body且每项“- ”开头，说明改动/原因/验证。视觉变动不再用表示格式整理的style。AGENTS保留全部代码任务由gpt-6-luna max实现、主助手验收及聊天页Vibe例外。
+- 本次仅文档整理，源码/测试/依赖/CI配置无变化；语言、链接和diff检查通过，不新增业务测试。本次提交将用docs(repo)和必需bullet body，PR说明同步英文。
+
+### 用户拒绝或纠偏
+
+- 从只有subject的提交改为必需scope/body；中文工程文档归到note，公开工程文本英文。中文产品文案、Prompt、错误消息和测试数据仍保留原有产品行为。
+
+### 翻车与返工
+
+- 初版AGENTS把Luna职责仅写在Vibe例外里，主助手指出后改为覆盖所有代码任务；README多余EOF空行已清理。
+- 旧提交scope/body缺失按禁止重写历史规则保留，不amend/rebase/force push；新规范从本次提交起执行。
+
+暂存验收补充：新英文文档首次暂存检查发现EOF空行及Markdown硬换行尾空格；之前工作区检查未覆盖未跟踪文档。主助手清理格式后再检查，未在失败状态下提交。原始中文验收记录未改动。
