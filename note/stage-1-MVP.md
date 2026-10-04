@@ -35,3 +35,28 @@
 - 澄清逐 token 的可验收定义为逐上游文本增量；一个 chunk 可能含多个 token。
 - 不把通用 OpenAI tokenizer 当作 DeepSeek 精确计数；首版预算为保守估算。
 - CD 部署目标仍需用户确认；CI、业务测试、真实模型评估、部署均未配置或未运行，不能宣称完成。
+
+## 2026-10-04 — spec 获批，实施计划编写与自查
+
+### 用户关键原话
+
+- 对书面 spec 回复「通过」。
+- 对本章部署安排选择「本章先本机 Docker，远端 CD 留后续阶段」。
+
+### 关键产出与评审结论
+
+- 书面 spec 状态更新为已批准；新增计划 docs/superpowers/plans/2026-10-04-stage-1-mvp.md。
+- 六项任务：配置与 CI、Prompt 与裁剪、SSE 对话、结构化提取、标注评估与演示、Docker 与最终评审。计划覆盖输入边界、取消、截断、严格字段及真实模型证据。
+- 计划自查完成；用户尚未审核计划，不记录“计划评审通过”，不开始代码实现。
+- 保留用户指定执行方式：Luna max 编码，主助手验收，每次一个任务。
+
+### 用户拒绝或纠偏
+
+- 用户明确本章不做远端 CD；本机 Docker 的运行证据独立报告，远端部署保持未验证。
+- 未改变 Python/FastAPI/LangChain、OpenAI 协议或 DeepSeek 选型。
+
+### 翻车与返工
+
+- 默认 python3 为 3.9.6；未发现常见位置的独立 Python 3.11。执行任务 1 前要解决运行时，未安装或改动系统环境。
+- Docker CLI 29.6.1 存在，但 daemon socket 不存在，docker version 无法连接；镜像未构建，本机容器未验证。启动 Docker 后再验证。
+- 已通过 Context7 补查 pydantic-settings、ChatOpenAI 参数及 Docker 官方资料；Actions 与实际锁定包的接口在对应任务实施前继续核对。
