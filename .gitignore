@@ -1,6 +1,7 @@
 .env
 .venv/
 .runtime-tools/
+/build/
 .DS_Store
 .idea/
 __pycache__/
