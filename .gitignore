@@ -1,0 +1,13 @@
+.env
+.venv/
+.runtime-tools/
+/build/
+.DS_Store
+.idea/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.py[cod]
+*.egg-info/

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f5f6">
+    <title>谷鱼Y的客服助手</title>
+    <link rel="stylesheet" href="/static/app.css">
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <main class="chat-panel" aria-label="谷鱼Y的客服对话">
+        <header class="chat-header">
+          <div class="brand">
+            <div class="brand-mark" aria-hidden="true">
+              <svg class="fish-icon" viewBox="0 0 48 48" focusable="false">
+                <path d="M14 24c4.1-7.1 10.4-10.3 17.2-9.4 6 .8 10.4 4.1 12.8 9.4-2.4 5.3-6.8 8.6-12.8 9.4C24.4 34.3 18.1 31.1 14 24Z" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="m14 24-8-7v14l8-7Z" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M25.5 16.3c-2 4.4-2 11 0 15.4" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"></path>
+                <circle cx="35.5" cy="21.3" r="1.2" fill="currentColor"></circle>
+              </svg>
+            </div>
+            <div class="brand-copy">
+              <h1>谷鱼Y的客服助手</h1>
+              <p>订单与售后支持</p>
+            </div>
+          </div>
+          <button class="new-chat-button" id="newChatButton" type="button" aria-label="开始与谷鱼Y的客服助手新对话">
+            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+              <path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+            </svg>
+            <span>新对话</span>
+          </button>
+        </header>
+
+        <section class="conversation" aria-label="对话">
+          <div class="message-list" id="messageList" role="log" aria-label="谷鱼Y的客服对话内容" aria-live="off" aria-relevant="additions">
+            <div class="empty-state" id="emptyState">
+              <div class="welcome-icon" aria-hidden="true">
+                <svg class="fish-icon" viewBox="0 0 48 48" focusable="false">
+                  <path d="M14 24c4.1-7.1 10.4-10.3 17.2-9.4 6 .8 10.4 4.1 12.8 9.4-2.4 5.3-6.8 8.6-12.8 9.4C24.4 34.3 18.1 31.1 14 24Z" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path d="m14 24-8-7v14l8-7Z" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path d="M25.5 16.3c-2 4.4-2 11 0 15.4" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"></path>
+                  <circle cx="35.5" cy="21.3" r="1.2" fill="currentColor"></circle>
+                </svg>
+              </div>
+              <p class="welcome-kicker">你好，欢迎咨询</p>
+              <h2>今天有什么需要帮忙？</h2>
+              <p class="welcome-copy">告诉我订单、配送或售后遇到的情况。你也可以在当前对话里继续追问。</p>
+              <div class="suggestions" aria-label="常见问题">
+                <button type="button" class="suggestion" data-suggestion="我的订单一直没有更新，可以帮我看看吗？">订单一直没有更新</button>
+                <button type="button" class="suggestion" data-suggestion="如何申请退货或退款？">退货或退款</button>
+                <button type="button" class="suggestion" data-suggestion="我想修改订单的收货地址。">修改收货地址</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer class="composer-area">
+          <form class="composer" id="chatForm">
+            <label class="sr-only" for="messageInput">输入你的问题</label>
+            <div class="composer-box">
+              <textarea id="messageInput" name="message" rows="1" maxlength="8000" placeholder="描述你的订单或问题…" autocomplete="off"></textarea>
+              <div class="composer-tools">
+                <p class="composer-hint" id="composerHint">Enter 发送 · Shift + Enter 换行</p>
+                <button class="send-button" id="sendButton" type="submit" disabled>
+                  <svg class="send-icon" id="sendIcon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <path d="M3.3 10.1 16.5 3.8l-3.2 12.4-3.1-4.8-4.9-1.3Zm6.9 1.3 6.3-7.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+                  </svg>
+                  <svg class="stop-icon" id="stopIcon" viewBox="0 0 20 20" aria-hidden="true" focusable="false" hidden>
+                    <rect x="5" y="5" width="10" height="10" rx="2" fill="currentColor"></rect>
+                  </svg>
+                  <span id="sendLabel">发送</span>
+                </button>
+              </div>
+            </div>
+          </form>
+          <p class="composer-footnote">发送后可在同一段对话中继续追问</p>
+        </footer>
+      </main>
+    </div>
+    <p class="sr-only" id="announcer" aria-live="polite" aria-atomic="true"></p>
+  </body>
+</html>
