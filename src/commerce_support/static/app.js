@@ -699,4 +699,3 @@
   resizeInput();
   updateComposer();
 })();
-
