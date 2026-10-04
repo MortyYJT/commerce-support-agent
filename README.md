@@ -9,11 +9,10 @@ Create a virtual environment with Python 3.11 and install the pinned development
 ```bash
 python3.11 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
-cp .env.example .env
 .venv/bin/python -m pip install --no-deps --no-build-isolation --editable .
 ```
 
-The API key is optional for this stage. Add a real DeepSeek key to `.env` before a later model-backed stage needs it. `.env` is ignored by Git.
+Create a local `.env` with `LLM_BASE_URL=https://api.deepseek.com`, `LLM_MODEL=deepseek-flash`, and `LLM_API_KEY` set to your own key; never commit this file. The API key is optional for this setup stage. Add a real DeepSeek key to `.env` before a later model-backed stage needs it. `.env` is ignored by Git.
 
 Start the API and check that it is alive:
 
