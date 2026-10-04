@@ -1,10 +1,10 @@
 :root {
   color-scheme: light;
-  --ink: #202124;
+  --ink: #000;
   --muted: #74777a;
   --line: #e2e4e6;
-  --accent: #4d5155;
-  --accent-dark: #2f3236;
+  --accent: #000;
+  --accent-dark: #222;
   --fish-blue: #347fc4;
   --panel: #ffffff;
   --canvas: #f4f5f6;
@@ -25,7 +25,7 @@
 
 ::selection {
   background: #dfe1e3;
-  color: #202124;
+  color: #000;
 }
 
 html,
@@ -212,7 +212,7 @@ button {
 
 .empty-state h2 {
   margin: 0;
-  color: #242629;
+  color: #000;
   font-size: clamp(22px, 3vw, 28px);
   line-height: 1.35;
   letter-spacing: -0.025em;
@@ -290,8 +290,8 @@ button {
 
 .message-user .message-avatar {
   order: 2;
-  color: #fff;
-  background: #686c70;
+  color: #166534;
+  background: #bbf7d0;
 }
 
 .message-main {
@@ -341,15 +341,15 @@ button {
 }
 
 .message-user .message-bubble {
-  border-color: #dedfe1;
+  border-color: #bbf7d0;
   border-radius: 17px 4px 17px 17px;
-  background: #f0f1f2;
+  background: #dcfce7;
 }
 
 .message-text {
   margin: 0;
   padding: 12px 15px;
-  color: #2d3033;
+  color: #000;
   font-size: 14px;
   line-height: 1.72;
   white-space: pre-wrap;
@@ -358,7 +358,7 @@ button {
 }
 
 .message-user .message-text {
-  color: #35383b;
+  color: #000;
 }
 
 .message-assistant[data-state="streaming"] .message-text.is-streaming::after {
@@ -524,11 +524,11 @@ button {
 }
 
 .send-button.is-stop {
-  background: #707478;
+  background: #000;
 }
 
 .send-button.is-stop:hover {
-  background: #55595d;
+  background: #222;
 }
 
 .composer-footnote {
