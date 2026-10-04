@@ -125,4 +125,4 @@ curl -N http://127.0.0.1:8000/chat/stream \
 - 子模型无法调用Context7，由主助手提供官方文档查询；没有改技术选型。
 - 本地uv创建的venv未安装pip，主助手首次pip wheel命令失败，改用已有uv build成功；README标准python3.11 -m venv路径不受影响。
 - 浏览器首次长时间采样超过控制工具3秒限制，改为1.2秒采样后观察到增量；这不是应用超时。
-- CI已配置并已有任务2成功记录；本次最终提交对应CI在交付时另行核验。Docker未配置/验证，远端CD按用户要求留后续阶段。PR保持由用户合并。
+- CI已配置；功能代码8d8b9ff及格式提交2297d5ab8616ecc5f0e6e4d13585a360c933e215对应PR run37202413591已completed/success（https://github.com/MortyYJT/commerce-support-agent/actions/runs/37202413591）。后续仅验收记录提交的CI另外核验。Docker未配置/验证，远端CD按用户要求留后续阶段。PR保持由用户合并。
