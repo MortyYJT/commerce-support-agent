@@ -7,7 +7,7 @@
 
 从只保留 MIT LICENSE 的仓库重建可学习、可验证的客服后端。用户按阶段学习，避免一次代写整个项目。交付 curl 可见的流式回复、两轮上下文、售后描述的固定字段 JSON。
 
-固定技术：Python、FastAPI、LangChain；应用使用 OpenAI 协议直连上游。首个真实验收上游为 DeepSeek，base_url=https://api.deepseek.com，model=deepseek-flash。地址、模型名、密钥从本地 .env 读取；仓库只保存无密钥的 .env.example。切换配置并不等于其他供应商已经验收；能力不兼容时明确报告，不自行更换选型。
+固定技术：Python、FastAPI、LangChain；应用使用 OpenAI 协议直连上游。首个真实验收上游为 DeepSeek，base_url=https://api.deepseek.com，model=deepseek-flash。地址、模型名、密钥从本地 .env 读取；用户随后要求去掉 .example 后缀；本地 .env 被 Git 忽略，仓库在 README 中记录无密钥的配置说明。切换配置并不等于其他供应商已经验收；能力不兼容时明确报告，不自行更换选型。
 
 本章不包含工具调用、Agent 循环、数据库、服务端会话存储或知识库检索。当前交付范围为 API；聊天页面如后续提出，遵循用户指定的 Vibe Coding 例外。
 
