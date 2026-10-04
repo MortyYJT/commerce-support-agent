@@ -221,3 +221,72 @@
 
 - 文件夹重命名导致旧虚拟环境路径失效，Luna 在新目录重新建立虚拟环境；原环境移到被忽略的工具目录。
 - 本阶段没有业务逻辑返工。真实 Prompt 行为在接通流式接口后验证；SSE 和页面仍在实现中。
+
+任务 2 远端补充证据：源码提交 7644867408f5885979054888929d1592b717b185 的 GitHub Actions run 37200865276 已 completed/success（https://github.com/MortyYJT/commerce-support-agent/actions/runs/37200865276）。
+
+
+## 2026-10-04 — 聊天首版与后端任务 3 的文档核对
+
+### 用户关键原话
+
+- 沿用「回复逐字蹦出来」「接着追问一句上下文也接得住」。
+
+### 关键产出与评审结论
+
+- Luna max 已产出 static/index.html、app.css、app.js 首版；JavaScript 语法检查通过，浏览器联调仍待 SSE 后端完成。页面按 Vibe Coding 例外直接实现，未进行页面 TDD/code review。
+- 后端任务 3 已先写测试取得预期 RED，正在实现流式网关与路由。
+- 主助手通过 Context7 核对 LangChain ChatOpenAI/astream、FastAPI StreamingResponse/StaticFiles/lifespan 和 MDN Fetch/ReadableStream/AbortController 官方接口，并把查询结论提供给 Luna。
+
+### 用户拒绝或纠偏
+
+- 保留本地 .env 和新目录名，无新增选型。
+
+### 翻车与返工
+
+- 子模型不能调用 Context7；主助手补做 Context7 查询，避免只凭记忆或把子模型工具限制当作用户阻塞。检索中的 astream 示例存在多余 await，以接口定义和安装版本源码交叉核对。
+
+
+## 2026-10-04 — 后端任务3完成与主助手验收
+
+### 用户关键原话
+
+- 沿用「SSE流式输出、逐token推送」「历史消息裁剪加token预算控制」和「你只负责验收」。
+
+### 关键产出与评审结论
+
+- Luna max完成model/services/sse/routes与应用lifespan；主助手独立检查后端源码、HTTP协议和测试，spec compliance/code quality通过，无未解决重要问题。
+- 预校验与预算在响应前完成；正常stop且有文本才done，空流/截断/异常结束失败，错误不泄露上游详情；首字前后断开均关闭上游。
+- 初始10项用例预期失败，另加1项首字前断开回归RED→GREEN；独立全套34 passed、Ruff通过，wheel包含三个static资源。真实curl看到delta及done/stop。
+- 标注客服样例真实DeepSeek人工判定6/6通过，详细依据与实际答复见docs/verification/chat-ui-results.md；未把非空回复自动当合格。
+
+### 用户拒绝或纠偏
+
+- 不改DeepSeek、FastAPI、LangChain选型；.env保持本地忽略，目录与仓库名一致。
+
+### 翻车与返工
+
+- LangChain把max_tokens改名，通过配置兼容桥修正，实际wire测试验收。
+- 主助手初审发现首token前取消不及时；Luna新增真实socket失败用例并修复，不仅检查首delta之后。
+- 本地venv无pip导致首次wheel命令失败，改用已有uv构建成功。
+
+## 2026-10-04 — 聊天页Vibe实现与浏览器验收完成
+
+### 用户关键原话
+
+- 「消息气泡排布…回复逐字渲染出来…能连续多轮聊」。
+
+### 关键产出与评审结论
+
+- Luna max直接实现HTML/CSS/JS聊天页，未套页面brainstorm/TDD/code review。
+- 主助手浏览器实际验证逐字增长、第一轮信息在第二轮准确复用、停止与新会话。截图保存在本次visualizations目录；报告docs/verification/chat-ui-results.md。
+- 前端保留最近20完整轮次，只有正常完成回复进入历史；停止后明确提示本轮未加入上下文。
+- 本次聊天页交付完成；任务4售后提取、任务5完整评估程序、任务6本机Docker待后续学习提示词，远端CD按用户要求留后续。
+
+### 用户拒绝或纠偏
+
+- 按用户页面例外用实际浏览器效果验收；没有对页面新增Superpowers评审门槛。
+
+### 翻车与返工
+
+- 为接口40条历史限制补上前端最近20轮裁剪，防止长期对话422。
+- 浏览器长采样超出工具3秒限制，改短采样成功观察增量；非应用错误。
