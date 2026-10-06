@@ -84,7 +84,7 @@ assert cancelled_turn_id not in history_turn_ids
 - [x] 运行`.venv/bin/python -m pytest tests/test_database_config.py -q`确认缺失实现导致失败；启动Docker后设置独立TEST_DATABASE_URL，运行集成测试确认失败。不得清空用户应用库。
 - [x] 实现四表：UUID字符串会话/轮次、messages递增主键，conversations保存active_turn_id/active_until；messages保存turn_id/turn_status/tool_calls JSON。tickets稳定主键。轮次开始/结束用短事务及条件更新；历史返回LangChain消息组。配置默认值按上文，数据库URL不出现在repr或错误。
 - [x] 实现`python -m commerce_support.database.cli init`：显式create_all和幂等种子四表，固定demo-seed会话与示例工单；应用启动不drop/create表。CLI不输出凭据。
-- [x] 启动Docker Desktop；`docker compose up -d mysql`，运行init两次并查表/行数/约束。集成测试必须实际MySQL，离线任务默认排除integration，不能用SQLite替代验收。
+- [x] 本机MySQL已恢复healthy；实际连接8.4.11、init两次exit0、14项repository测试通过。真实MySQL四表与重复初始化在CI与本机均通过；应用Docker部署留任务6。
 - [x] 运行该任务测试及Ruff；主助手验收、即时记note后提交feat(db)，英文bullet body含验证。
 
 ### Task 2：五个工具、Schema与幂等执行

@@ -263,3 +263,10 @@
 - 关键产出：产品修复e83a41e；独立复审task-1-rereview.md判定两项Important均ADDRESSED，fix diff无新增Critical/Important。主助手实时核对Actions运行37409537409：离线检查通过，真实MySQL8.4.11执行`python -m pytest tests/integration -m integration -q`为14 passed in 5.05s，覆盖四表/FK、重复初始化、并发/接管、成组历史、工单幂等、LIKE字面转义及5项修复回归。任务1数据层验收通过，开始任务2。
 - 拒绝或纠偏：复审报告撰写时CI尚待核对，其“未验证”项由主助手实际读取job结果与日志解除；本机Docker部署仍未通过，不用CI结果替代本机CD。
 - 翻车与返工：完成一次修复回合；过程分别保留认证失败、真实业务RED与最终GREEN。无重写已推提交、无直接推main、无自动合并。
+
+### 2026-10-06 — 本机MySQL恢复并补验
+
+- 用户关键原话：沿用“本章先本机 Docker，远端 CD 留后续阶段”。
+- 关键产出：主助手重新只读检查发现mysql容器已healthy；应用配置实际连接`SELECT VERSION()`返回8.4.11。随后应用库显式init两次均exit0，独立测试库运行14项repository集成测试为14 passed in 4.16s。本机MySQL数据层验收已补齐，应用容器/ready/真实聊天部署仍待任务6。
+- 拒绝或纠偏：先前Docker阻塞状态已被实时证据更新；没有执行安全绕过或数据重置，官方更新成功仍未证实，不据此解释恢复原因。
+- 翻车与返工：早先启动长时间卡住后现已恢复，具体原因未确认。保留本地Docker.raw备份；无需用户继续为这项已恢复的数据层阻塞操作。
