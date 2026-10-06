@@ -15,6 +15,8 @@ dependencies = [
   "pydantic==2.13.5",
   "pydantic-settings==2.15.0",
   "python-dotenv==1.2.4",
+  "sqlalchemy[asyncio]==2.0.54",
+  "asyncmy==0.2.15",
   "uvicorn==0.54.0",
 ]
 
@@ -35,6 +37,8 @@ commerce_support = ["static/*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+addopts = "-m 'not integration'"
+markers = ["integration: requires a dedicated disposable MySQL database"]
 
 [tool.ruff]
 line-length = 100
