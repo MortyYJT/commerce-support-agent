@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from typing import Protocol
 
 import httpx
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 
 from commerce_support.config import Settings
@@ -20,6 +21,14 @@ class ModelChunk:
 
 
 class ModelGateway(Protocol):
+    async def select_tools(
+        self,
+        messages: list[BaseMessage],
+        tools: list[BaseTool],
+    ) -> AIMessage: ...
+
+    def stream_final(self, messages: list[BaseMessage]) -> AsyncIterator[ModelChunk]: ...
+
     def stream(self, messages: list[BaseMessage]) -> AsyncIterator[ModelChunk]: ...
 
     async def aclose(self) -> None: ...
@@ -68,7 +77,23 @@ class ChatOpenAIModelGateway:
             http_async_client=self._http_async_client,
         )
 
-    async def stream(self, messages: list[BaseMessage]) -> AsyncIterator[ModelChunk]:
+    async def select_tools(
+        self,
+        messages: list[BaseMessage],
+        tools: list[BaseTool],
+    ) -> AIMessage:
+        selection_model = self._model.bind_tools(tools, tool_choice="auto")
+        return await selection_model.ainvoke(messages)
+
+    def stream_final(self, messages: list[BaseMessage]) -> AsyncIterator[ModelChunk]:
+        # Omitting tool definitions leaves the final request with no executable tools.
+        return self._stream(messages)
+
+    def stream(self, messages: list[BaseMessage]) -> AsyncIterator[ModelChunk]:
+        """Retain the first-stage stream interface for existing callers."""
+        return self.stream_final(messages)
+
+    async def _stream(self, messages: list[BaseMessage]) -> AsyncIterator[ModelChunk]:
         upstream = self._model.astream(messages)
         try:
             async for chunk in upstream:
