@@ -71,7 +71,7 @@
 
 **Interfaces:** Database(settings)提供sessions: async_sessionmaker[AsyncSession]及aclose()；ChatRepository(database)提供begin_turn(message, conversation_id=None)->TurnContext、successful_history(conversation_id)->list[list[BaseMessage]]、append_assistant_call(ctx, AIMessage)、append_tool_result(ctx, call_id, result)、finish_turn(ctx, text, status)。finish_turn只接受completed/failed/cancelled，返回前提交并验证轮次所有权。FAQRepository.search_literal(keyword, limit=5)->list[dict]；TicketRepository.create_once(ctx, call_id, description, ticket_type)->dict。
 
-- [ ] 写失败测试：test_exactly_four_tables_and_foreign_keys；test_seed_is_idempotent；test_begin_turn_conflicts；test_expired_turn_cannot_finish_new_turn；test_only_completed_turns_enter_history，断言工具id配对及稳定排序。
+- [x] 写失败测试：test_exactly_four_tables_and_foreign_keys；test_seed_is_idempotent；test_begin_turn_conflicts；test_expired_turn_cannot_finish_new_turn；test_only_completed_turns_enter_history，断言工具id配对及稳定排序。
 
 ```python
 assert table_names == {"faq", "conversations", "messages", "tickets"}
@@ -81,11 +81,11 @@ assert stale_finish_changed_rows == 0
 assert cancelled_turn_id not in history_turn_ids
 ```
 
-- [ ] 运行`.venv/bin/python -m pytest tests/test_database_config.py -q`确认缺失实现导致失败；启动Docker后设置独立TEST_DATABASE_URL，运行集成测试确认失败。不得清空用户应用库。
-- [ ] 实现四表：UUID字符串会话/轮次、messages递增主键，conversations保存active_turn_id/active_until；messages保存turn_id/turn_status/tool_calls JSON。tickets稳定主键。轮次开始/结束用短事务及条件更新；历史返回LangChain消息组。配置默认值按上文，数据库URL不出现在repr或错误。
-- [ ] 实现`python -m commerce_support.database.cli init`：显式create_all和幂等种子四表，固定demo-seed会话与示例工单；应用启动不drop/create表。CLI不输出凭据。
-- [ ] 启动Docker Desktop；`docker compose up -d mysql`，运行init两次并查表/行数/约束。集成测试必须实际MySQL，离线任务默认排除integration，不能用SQLite替代验收。
-- [ ] 运行该任务测试及Ruff；主助手验收、即时记note后提交feat(db)，英文bullet body含验证。
+- [x] 运行`.venv/bin/python -m pytest tests/test_database_config.py -q`确认缺失实现导致失败；启动Docker后设置独立TEST_DATABASE_URL，运行集成测试确认失败。不得清空用户应用库。
+- [x] 实现四表：UUID字符串会话/轮次、messages递增主键，conversations保存active_turn_id/active_until；messages保存turn_id/turn_status/tool_calls JSON。tickets稳定主键。轮次开始/结束用短事务及条件更新；历史返回LangChain消息组。配置默认值按上文，数据库URL不出现在repr或错误。
+- [x] 实现`python -m commerce_support.database.cli init`：显式create_all和幂等种子四表，固定demo-seed会话与示例工单；应用启动不drop/create表。CLI不输出凭据。
+- [x] 启动Docker Desktop；`docker compose up -d mysql`，运行init两次并查表/行数/约束。集成测试必须实际MySQL，离线任务默认排除integration，不能用SQLite替代验收。
+- [x] 运行该任务测试及Ruff；主助手验收、即时记note后提交feat(db)，英文bullet body含验证。
 
 ### Task 2：五个工具、Schema与幂等执行
 
@@ -194,4 +194,4 @@ assert final_calls_after_result_budget_error == 0
 
 spec的分层/四表/单工具/上下文/错误取消/SSE/页面/配置CI/验收分别映射任务1—6；五项Review Focus均有对应测试。接口统一使用TurnContext、ToolResult、StreamEvent与repository轮次方法；没有Agent循环、RAG、额外业务表或远端部署。页面例外和Prompt评估替代TDD已单独标注。
 
-计划状态：用户于2026-10-06批准，当前执行任务1。真实MySQL CI验证因本机Docker运行环境阻塞提前进行，具体裁定与验证状态见development-log.md；本机Docker验收仍然保留。
+计划状态：用户于2026-10-06批准，任务1数据层已通过真实MySQL CI与修复复审，当前执行任务2。真实MySQL CI验证因本机Docker运行环境阻塞提前进行，具体裁定与验证状态见development-log.md；本机Docker验收仍然保留。
