@@ -1,3 +1,4 @@
+from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -10,6 +11,8 @@ from commerce_support.database.exceptions import DatabaseConfigurationError
 
 
 class Database:
+    REQUIRED_TABLES = frozenset({"faq", "conversations", "messages", "tickets"})
+
     def __init__(self, settings: Settings) -> None:
         if settings.database_url is None:
             raise DatabaseConfigurationError("DATABASE_URL is required for database access")
@@ -31,6 +34,14 @@ class Database:
 
     async def aclose(self) -> None:
         await self._engine.dispose()
+
+    async def check_ready(self) -> bool:
+        async with self._engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+            tables = await connection.run_sync(
+                lambda sync_connection: set(inspect(sync_connection).get_table_names())
+            )
+        return tables == self.REQUIRED_TABLES
 
     def __repr__(self) -> str:
         return "Database()"

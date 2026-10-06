@@ -141,17 +141,53 @@ class ChatRepository:
                     converted.append(HumanMessage(content=message.content))
                 elif message.role == "assistant":
                     calls = message.tool_calls or []
+                    valid_calls: list[dict[str, Any]] = []
+                    invalid_calls: list[dict[str, Any]] = []
                     for call in calls:
                         call_id = call.get("id")
                         name = call.get("name")
-                        if not isinstance(call_id, str) or not isinstance(name, str):
+                        if (
+                            not isinstance(call_id, str)
+                            or not 1 <= len(call_id) <= 64
+                            or not isinstance(name, str)
+                            or not name
+                        ):
                             raise CorruptHistoryError("stored assistant tool call is malformed")
                         if call_id in seen_calls:
                             raise CorruptHistoryError("stored assistant tool call id is duplicated")
                         seen_calls.add(call_id)
                         pending_calls.add(call_id)
                         call_names[call_id] = name
-                    converted.append(AIMessage(content=message.content, tool_calls=calls))
+                        if call.get("type", "tool_call") == "invalid_tool_call":
+                            invalid_calls.append(
+                                {
+                                    "id": call_id,
+                                    "name": name,
+                                    "args": call.get("args"),
+                                    "error": call.get("error"),
+                                    "type": "invalid_tool_call",
+                                }
+                            )
+                        else:
+                            if not isinstance(call.get("args"), dict):
+                                raise CorruptHistoryError(
+                                    "stored assistant tool call arguments are malformed"
+                                )
+                            valid_calls.append(
+                                {
+                                    "id": call_id,
+                                    "name": name,
+                                    "args": call["args"],
+                                    "type": "tool_call",
+                                }
+                            )
+                    converted.append(
+                        AIMessage(
+                            content=message.content,
+                            tool_calls=valid_calls,
+                            invalid_tool_calls=invalid_calls,
+                        )
+                    )
                 elif message.role == "tool":
                     call_id = message.tool_call_id
                     if call_id is None or call_id not in pending_calls:
@@ -464,12 +500,13 @@ async def _require_paired_tool_calls(session: AsyncSession, ctx: TurnContext) ->
             Message.role == "assistant",
         )
     )
-    expected_ids = {
-        call.get("id")
-        for calls in await_calls
-        for call in calls or []
-        if isinstance(call.get("id"), str)
-    }
+    expected_ids: set[str] = set()
+    for calls in await_calls:
+        for call in calls or []:
+            call_id = call.get("id")
+            if not isinstance(call_id, str) or not 1 <= len(call_id) <= 64:
+                raise CorruptHistoryError("completed turn contains a tool call without a valid id")
+            expected_ids.add(call_id)
     tool_ids = list(
         await session.scalars(
             select(Message.tool_call_id).where(
@@ -484,7 +521,29 @@ async def _require_paired_tool_calls(session: AsyncSession, ctx: TurnContext) ->
 
 
 def _validated_tool_calls(message: AIMessage) -> list[dict[str, Any]]:
-    calls = message.tool_calls
+    calls: list[dict[str, Any]] = []
+    for call in message.tool_calls or []:
+        call_id = call.get("id")
+        name = call.get("name")
+        args = call.get("args")
+        _validate_call_id(call_id)
+        if not isinstance(name, str) or not name:
+            raise ValueError("assistant tool call name is required")
+        if not isinstance(args, dict):
+            raise TypeError("assistant tool call arguments must be an object")
+        calls.append({"id": call_id, "name": name, "args": args, "type": "tool_call"})
+
+    for call in message.invalid_tool_calls or []:
+        calls.append(
+            {
+                "id": call.get("id"),
+                "name": call.get("name"),
+                "args": call.get("args"),
+                "error": call.get("error"),
+                "type": "invalid_tool_call",
+            }
+        )
+
     if not calls:
         raise ValueError("assistant message must contain at least one tool call")
     try:
@@ -494,17 +553,28 @@ def _validated_tool_calls(message: AIMessage) -> list[dict[str, Any]]:
     except (TypeError, ValueError) as error:
         raise ValueError("assistant tool calls must be JSON serializable") from error
 
+    seen_ids: set[str] = set()
     for call in serializable_calls:
         if not isinstance(call, dict):
             raise TypeError("assistant tool calls must be objects")
         call_id = call.get("id")
         name = call.get("name")
-        args = call.get("args")
-        _validate_call_id(call_id)
-        if not isinstance(name, str) or not name:
-            raise ValueError("assistant tool call name is required")
-        if not isinstance(args, dict):
-            raise TypeError("assistant tool call arguments must be an object")
+        call_type = call.get("type")
+        if call_type == "tool_call":
+            _validate_call_id(call_id)
+            if not isinstance(name, str) or not name:
+                raise ValueError("assistant tool call name is required")
+            if not isinstance(call.get("args"), dict):
+                raise TypeError("assistant tool call arguments must be an object")
+        elif call_type == "invalid_tool_call":
+            if call_id is not None and not isinstance(call_id, str):
+                raise TypeError("invalid assistant tool call id must be a string or null")
+        else:
+            raise ValueError("assistant tool call type is unsupported")
+        if isinstance(call_id, str):
+            if call_id in seen_ids:
+                raise ValueError("assistant tool call ids must be unique")
+            seen_ids.add(call_id)
     return serializable_calls
 
 

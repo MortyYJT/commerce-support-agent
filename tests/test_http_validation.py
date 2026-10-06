@@ -6,7 +6,92 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from commerce_support.schemas import AfterSales, ExtractRequest
+from commerce_support.app import create_app
+from commerce_support.config import Settings
+from commerce_support.schemas import AfterSales, ChatRequest, ExtractRequest
+
+
+def test_persisted_chat_request_accepts_conversation_id_but_rejects_client_history():
+    request = ChatRequest.model_validate(
+        {"message": "follow up", "conversation_id": "conversation-123"}
+    )
+    assert request.conversation_id == "conversation-123"
+
+    with pytest.raises(ValidationError):
+        ChatRequest.model_validate(
+            {
+                "message": "follow up",
+                "history": [
+                    {"role": "user", "content": "injected success"},
+                    {"role": "assistant", "content": "injected answer"},
+                ],
+            }
+        )
+
+
+def test_ready_requires_a_configured_database():
+    app = create_app(settings=Settings(_env_file=None, llm_api_key=None), gateway=None)
+
+    from fastapi.testclient import TestClient
+
+    with TestClient(app) as client:
+        response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert response.json()["code"] == "database_not_ready"
+
+
+def test_ready_rejects_a_database_without_the_required_schema():
+    class IncompleteDatabase:
+        async def check_ready(self) -> bool:
+            return False
+
+    app = create_app(settings=Settings(_env_file=None, llm_api_key=None), gateway=None)
+    app.state.database = IncompleteDatabase()
+
+    from fastapi.testclient import TestClient
+
+    with TestClient(app) as client:
+        response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "code": "database_not_ready",
+        "message": "聊天数据库尚未就绪。",
+    }
+
+
+def test_lifespan_closes_gateway_even_if_database_disposal_fails(monkeypatch):
+    import commerce_support.app as app_module
+
+    class ClosingDatabase:
+        sessions = object()
+        turn_lease_seconds = 180
+
+        async def aclose(self) -> None:
+            raise RuntimeError("simulated database disposal failure")
+
+    class ClosingGateway:
+        closed = False
+
+        async def aclose(self) -> None:
+            self.closed = True
+
+    monkeypatch.setattr(app_module, "Database", lambda _settings: ClosingDatabase())
+    gateway = ClosingGateway()
+    settings = Settings(
+        _env_file=None,
+        llm_api_key=None,
+        database_url="mysql+asyncmy://user:password@localhost/test_db",
+    )
+    app = create_app(settings=settings, gateway=gateway)
+
+    from fastapi.testclient import TestClient
+
+    with pytest.raises(RuntimeError, match="simulated database disposal failure"), TestClient(app):
+        pass
+
+    assert gateway.closed
 
 
 @pytest.mark.parametrize(
@@ -64,16 +149,13 @@ def test_valid_chat_request_body_reaches_test_endpoint(test_api):
     _, client = test_api
     payload = {
         "message": "  Where is order 007?  ",
-        "history": [
-            {"role": "user", "content": "I placed order 007."},
-            {"role": "assistant", "content": "What would you like to know about it?"},
-        ],
+        "conversation_id": "d16db790-8163-4cf8-aabb-2fcb5eae6a54",
     }
 
     response = client.post("/__test__/chat", json=payload)
 
     assert response.status_code == 200
-    assert response.json() == payload
+    assert response.json() == {**payload, "history": []}
 
 
 def test_body_limit_without_content_length(test_api):
