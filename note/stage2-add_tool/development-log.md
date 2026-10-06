@@ -348,3 +348,63 @@
 - 关键产出：Luna实现app.js/app.css，node --check与diff --check通过。主助手真实浏览器8002验证物流1001徽章与随机演示答案，追问返回1001；退货政策调用query_faq命中，邮费原词keyword=邮费、实际存储工具结果not_found、徽章没有匹配结果。AX观察回复由正在回复/“当然”增长到完整内容；纯黑方框停止后显示已停止，立即下一条你好正常完成。刷新空态后数据库确认新conversation_id与4条completed消息，不沿用前一20条消息会话。
 - 拒绝或纠偏：重试徽章使用明确受控的单请求SSE running attempt1→running attempt2→succeeded验证，DOM只有1枚徽章；这是页面状态帧验收，不冒充真实业务重试。验收后清除CDP拦截并刷新页面，正式页面内容无受控结果。截图保存于工作区外stage2-browser-host.jpg与stage2-browser-stream.jpg，后者为完整回复截图；未把截图称为未完成token证据，流式增量由当时AX状态验证。
 - 翻车与返工：首次用较长问题做取消时先触发默认4096预算错误，因已结束无法点击停止；随后短物流问题真实取消通过。该默认预算对中文描述容量偏紧，留Task6实际配置/评估明确处理。CDP工具要求Fetch限定非Document类型，清除使用空patterns，均按工具提示修正，无遗留拦截。UI本身不套TDD/code review，现通知Luna提交仅两份页面文件。
+
+### Task6 配置容量裁定与准备
+- 用户关键原话：“本章先本机 Docker，远端 CD 留后续阶段”；“历史消息裁剪加 token 预算控制”。
+- 关键产出：Task5提交561b006，过程提交01c3a84；开始Task6 Luna交付。实测System 1496 UTF-8 bytes、完整工具Schema约2344 bytes，普通26字中文售后问题保守估计4095/4096。主助手裁定演示运行配置INPUT_TOKEN_BUDGET=6144，额外2048估算余量；私有.env原子更新，仅此公开预算字段变化，其他配置保留，未打印密钥。样例/Compose/README明确推荐6144，代码Settings兜底4096保持。
+- 拒绝或纠偏：该数字是主助手在授权范围内的配置判断，不冒称用户亲自指定；不能改评估标签、删除必需Prompt/schema/results或提高测试预算掩盖算法问题。按实际请求计算的Task4修复保持，正常描述与依赖上一工具的追问须真实验证。
+- 翻车与返工：本机MySQL已验证，应用镜像/Compose部署尚未运行；后续单独记录配置完成、CI通过、本机部署验证。额外输入余量可能增加实际保留上下文与模型费用，最终裁定清单会提供给用户审核。
+
+### Task6 实际 Docker 构建首次失败
+- 用户关键原话：“建立实际运行的 CI/CD，明确区分已配置、检查通过和部署已验证”。
+- 关键产出：Luna准备Dockerfile/.dockerignore/compose/config.env.sample与三职责CI；主助手实际docker compose build，Python3.11.17固定摘要、arm64依赖安装、builder wheel生成成功，白名单context仅145.05kB。应用wheel安装层exit1，尚无应用镜像/部署成功证据。
+- 拒绝或纠偏：不以配置文件存在宣称CD验证；不改固定依赖或删除校验。完整畸形JSON最终wire新增测试直接GREEN，诚实记录已实现行为通过补验，未造假RED。
+- 翻车与返工：Dockerfile把合法commerce_support_agent-0.1.0-py3-none-any.whl改名commerce-support-agent.whl，pip报告not a valid wheel filename；原Luna做最小合法文件名修复，再由主助手实际重建。构建有root pip与系统用户home/UID警告，记录而非称输出完全无噪声；运行服务仍使用非root用户。
+
+### Task6 本机应用部署验证通过
+- 用户关键原话：“本章先本机 Docker”；“明确区分已配置、检查通过和部署已验证”。
+- 关键产出：保留合法wheel名称后主助手实际docker compose build成功，docker compose up -d成功；mysql健康→init Exited(0)→app健康，8001/ready返回ready。实际容器Python3.11.17、uid10001、INPUT_TOKEN_BUDGET6144，app/init使用同一已构建镜像sha256:765c95afa2d28c5d814a68ab9d9ee97b1313f377014592da00b34b8c5ce37bf4。环境变量名称回读确认mysql/init没有LLM_*，仅app具有模型配置；/app内.env/.git/note/.venv/.superpowers均不存在。
+- 拒绝或纠偏：部署验证指本机容器启动与真实数据库就绪，不等于8项模型评估或整章功能全部通过；CI镜像job已写配置但尚未推送验证，远端CD未配置/未验证。
+- 翻车与返工：已修复首次wheel命名导致的构建失败；未重置MySQL命名卷，旧数据库与正常测试数据保留。继续Docker页面实际工具、多轮、FAQ与工单验证，及完整标注样例评估。
+
+### Task6 首轮真实评估与 Prompt 返工
+- 用户关键原话：“发一句就能触发”；“create_ticket 创建人工工单”；“继续”。
+- 关键产出：Docker8001真实模型8项评估首次7/8通过，工单用例未调用工具而追问订单号/商品名；保留原标签与首次失败证据。Luna澄清工单仅需描述和类型，具体问题及明确建单意图足够；缺订单号的订单查询规则保持。FAQ邮费SQL回放捕获真实SELECT、绑定参数邮费/5、零行。
+- 拒绝或纠偏：不修改标签冒充通过，不额外要求工具Schema没有的工单字段；SQL回放明确与原请求现场采样区分。短Prompt澄清只增加3 UTF-8 bytes，默认预算回归与断连测试通过。
+- 翻车与返工：较长澄清草稿造成两项默认预算测试失败，已缩短后通过；即将由主助手重建真实Docker镜像，再全8项评估，不把本地源码更新视为运行镜像已经修复。
+
+### Task6 新镜像真实浏览器与数据库验收
+- 用户关键原话：“浏览器打开聊天页”；“接着追问一句上下文也接得住”；“邮费是多少”。
+- 关键产出：主助手重新build/up成功、8001/ready ready。普通售后描述直接建return/open工单TK-D3A2A1BD38A19D1E942C，独立SQL核对4条completed流水、匹配call id、会话idle/无租约。新会话物流1001返回out_for_delivery/4天/Demo Express，追问“这个订单金额是多少”自动query_order(order_id=1001)，实际工具214.39 AUD与最终回答一致，8条completed流水。退货政策命中30天；同会话邮费实际keyword=邮费、not_found/[]，页面徽章无匹配、安全回答，数据库8条流水一致。
+- 拒绝或纠偏：6144配置的普通描述和依赖上下文调用已真实验证；随机演示订单与物流状态可不一致，不把随机数据当真实公司系统。FAQ与多轮截图保存于工作区外stage2-docker-faq.jpg/stage2-docker-chat.jpg。
+- 翻车与返工：主助手首个只读DB脚本误给Database传URL字符串，导入签名核对后改为Settings并成功回读，无产品代码修改；完整评估、协议probe、CI和最终评审仍待完成。
+
+### Task6 实际评估返工后通过
+- 用户关键原话：“结构化输出/工具结果回灌”；“只做单轮调用”；“继续”。
+- 关键产出：Luna在主助手重建的新Docker8001镜像上全量8项确定性检查通过，并检查最终答复；首次7/8证据保留。实际DeepSeek畸形JSON反馈协议probe单次POST chat/completions成功200并完成流式回复，保留raw参数、匹配INVALID_TOOL_CALL错误ToolMessage、final不携带tools。
+- 拒绝或纠偏：tool_failure明确为真实模型加显式失败注入，不冒称真实业务工具故障；畸形JSON为主动构造合法匹配协议的真实上游probe，不冒称供应商随机生成。主助手要求note评估/验收记录中文、README与代码英文。
+- 翻车与返工：工单Prompt最小修正后完整评估通过，缺订单号追问和多诉求澄清均保留；Luna整理限定提交与测试证据，Task6尚待独立评审/实际CI，整章未宣告完成。
+
+### Task6 全套检查与独立人工答复审阅
+- 用户关键原话：“拿标注样例或评估集跑一遍验证”；“测试结果”。
+- 关键产出：Luna最后离线71 passed、专用commerce_support_test_task1真实MySQL21 passed、Ruff通过。主助手逐条审阅最终脱敏JSONL的8项最终答复及真实结果：物流out_for_delivery/5天/Demo Post准确，退货30天、邮费零召回不猜金额，问候/缺ID/多诉求澄清，显式失败不谎报，工单TK-4A399DF2CE155791D2AD与实际return/open匹配，8项人工判定通过。
+- 拒绝或纠偏：脚本仍标记manual_response_review_required，自动确定性检查与本次主助手人工审阅分别记录；最终运行结果不能混入前次随机物流或前次工单号。README补充新环境专用测试schema准备，避免只在当前已有库可复现。
+- 翻车与返工：无新增产品返工；正在完成限定checkpoint以启动独立Task6评审与三个实际CI任务。
+
+### Task6 限定提交与真实 CI 启动
+- 用户关键原话：“commit and push,我来审核pr”；“message要有body用-作为开头”。
+- 关键产出：Luna限定12文件提交e064665，英文feat(stage-2)标题与真实换行英文bullet body；未包含主助手过程记录。根助手推功能分支，实际CI37441411484：offline和docker-build已success，mysql-integration仍运行；独立Task6评审进行中。最终本机app/init镜像3b04c5aee956，重复up保持mysql/app健康且init Exited(0)。
+- 拒绝或纠偏：新环境测试库步骤复用Task1已有初始化SQL并挂载，真实重复执行两次且验证新测试schema创建/授权，仅删除本次空probe库；已有库IF NOT EXISTS提示诚实保留。没有推main/合并/改写历史。
+- 翻车与返工：暂未新增评审返工；当前CI配置和两个任务通过不等于三个任务均通过，下一步明确核对MySQL结果。
+
+### Task6 三职责 CI 与最终 curl 验证通过
+- 用户关键原话：“curl 调对话接口能看到流式回复”；“明确区分已配置、检查通过和部署已验证”。
+- 关键产出：实际CI37441411484三个job均success，日志offline 71 passed/21 deselected in 2.40s，MySQL 21 passed in 6.43s，docker-build成功。主助手最终Docker8001实际curl三场景均conversation→running/终态→多个delta→done，独立SQL核对各4条completed、配对call id、idle/无租约、最终文本一致。物流随机派送中/2天/Demo Post；退货原文子串keyword=退货命中30天；邮费原词not_found/[]且无猜测金额。
+- 拒绝或纠偏：curl的FAQ关键字是合法原文子串“退货”，与八项标注评估的“退货政策”分别记录；随机物流结果不混入前次评估。镜像构建CI并非远端部署；本机Docker运行与功能已验证，远端CD未配置/未验证。
+- 翻车与返工：CI无新失败，独立Task6评审和整分支最终评审仍待完成，未擅自合并。
+
+### Task6 独立评审通过与任务验收
+- 用户关键原话：“你只负责验收”；“全程走 Superpowers 流程”。
+- 关键产出：task-6-review.md Spec compliant、Approved，无Critical/Important；Docker固定摘要/白名单、Compose依赖、三CI职责、真实评估与失败留痕均符合。主助手用已完成真实Docker/SQL/逐条人工评估/实际CI解除跨diff验证项；任务6实现现验收通过，进入整分支最终评审。
+- 拒绝或纠偏：Minor为evaluate_live_prompts.py记录FAQ SQL回放row_count却未纳入自动8/8条件；本次真实零行已核对，但该自动检查缺口仍交最终评审，不抹去发现。现有missingDB/ready失败测试为Task4先红后绿证据，Task6复用而不写镜像式冗余单测。
+- 翻车与返工：此评审不要求产品返工；最终评审仍须综合跨任务行为和此前Minor，用户合并步骤保留。
