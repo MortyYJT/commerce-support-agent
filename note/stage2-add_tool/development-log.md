@@ -291,3 +291,17 @@
 - 关键产出：140443e实现五个@tool、严格Schema、原词FAQ、随机演示数据、工单幂等和有界执行器。独立task-2-review.md判定Spec compliant、Task quality Approved，无Critical/Important。主助手核对Actions运行37411361637：离线任务成功，MySQL8.4.11为16 passed in 4.83s；本地离线49 passed、工具集成2 passed。
 - 拒绝或纠偏：保留tool_result内部契约；复审跨任务“协调器/历史/SSE/页面未验证”由任务4/5继续完成，不当作工具已接入聊天页。固定种子的具体随机输出断言属于Minor，已记录待最终整体评审裁定。
 - 翻车与返工：修正测试库计数假设和临时事件改名；结果超限单独先RED再GREEN。无业务实现重返修回合，开始任务3模型层。
+
+### 2026-10-06 — 任务3CI暴露租约测试精度问题
+
+- 用户关键原话：沿用“实际运行的CI/CD，明确区分已配置、检查通过和部署已验证”。
+- 关键产出：模型层a556ea4独立评审通过，无Critical/Important；但Actions运行37412233450离线成功、MySQL为1 failed/15 passed，失败是旧租约回归测试。主助手先查Context7，再补读MySQL8.4官方fractional-seconds手册；本机只读CAST探针确认`.850000`写入DATETIME(0)会进到下一秒，TIME_TRUNCATE_FRACTIONAL未启用。交原数据层Luna只修测试，按实际persisted active_until等待。
+- 拒绝或纠偏：不直接重跑CI掩盖偶发失败；不改SQL mode、生产schema或放宽过期所有权断言。模型实现不因无关测试误判为已通过CI。
+- 翻车与返工：旧测试只等Python原始期限+0.2秒，忽略MySQL默认fsp0的四舍五入，导致有时锁释放时租约其实仍有效。修正后还需覆盖测试与新CI验证。
+
+### 2026-10-06 — 租约测试修正验收、任务3完成
+
+- 用户关键原话：沿用单轮限制、Luna实现、主助手验收和实际CI要求。
+- 关键产出：447b9d3仅修租约测试，主动写入`.850000`并读取MySQL实际persisted active_until，持锁到实际过期后再释放；独立task-1-expiry-review.md判定ADDRESSED且无新问题。主助手核对运行37412670992：离线与真实MySQL任务均success。模型层a556ea4评审Approved、52项离线测试通过；8个Prompt样例已建立并静态校验，真实语义评测仍待任务6。
+- 拒绝或纠偏：修测试假设而非放松业务断言；不因原始CI失败随意重跑冒充稳定通过。模型wire测试的准确五工具名/隐藏参数断言加强建议为Minor，已记最终评审清单。
+- 翻车与返工：完成真实CI暴露的时间精度返工；本机全MySQL16 passed、52项离线通过，新CI解除任务3阻塞。进入任务4持久化聊天/SSE/取消/预算协调器。

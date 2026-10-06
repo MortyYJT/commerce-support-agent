@@ -116,7 +116,7 @@ assert first_ticket_number == retry_ticket_number
 
 **Interfaces:** ModelGateway.select_tools(messages: list[BaseMessage], tools: list[BaseTool])->AIMessage；ModelGateway.stream_final(messages: list[BaseMessage])->AsyncIterator[ModelChunk]。aclose与ModelChunk维持原接口。selection返回包含invalid_tool_calls的原始AIMessage，不先丢弃无效申请。
 
-- [ ] 写失败测试test_selection_sends_openai_tools、test_final_request_disables_tools、test_invalid_calls_are_preserved，断言模型网关不含循环；mock HTTP核对真实wire payload继续保持max_tokens、thinking disabled、Chat Completions设置。
+- [x] 写失败测试test_selection_sends_openai_tools、test_final_request_disables_tools、test_invalid_calls_are_preserved，断言模型网关不含循环；mock HTTP核对真实wire payload继续保持max_tokens、thinking disabled、Chat Completions设置。
 
 ```python
 assert len(selection_payload["tools"]) == 5
@@ -126,11 +126,11 @@ assert selection.invalid_tool_calls == expected_invalid_calls
 assert selection_payload["max_tokens"] == settings.max_output_tokens
 ```
 
-- [ ] 运行`.venv/bin/python -m pytest tests/test_tool_model.py -q`确认失败。
-- [ ] 使用bind_tools(tool_choice=auto)和ainvoke选择；最终不带可执行工具定义且明确禁工具，必要时使用已验证的tool_choice=none。不要通过provider retries偷偷增加模型请求次数；继续max_retries=0。parallel_tool_calls非必要，只有官方确认并实测支持才发送；应用仍检查数量。
-- [ ] Prompt新增原词FAQ、演示数据、结果依据、失败不可编造与最终不再调用工具的约束；不以硬编码关键词路由替代模型选择。
-- [ ] 用标注样例而非字符串单测评估Prompt：三个指定场景、普通问候、缺订单号、多工具诉求、工具失败、工单创建，记录选择/参数/结果一致性；真实模型验证在任务6最终再跑，离线此处先验证网关wire与静态样例结构。
-- [ ] 模型测试及Ruff通过、主助手验收、即时记note后提交feat(model)。
+- [x] 运行`.venv/bin/python -m pytest tests/test_tool_model.py -q`确认失败。
+- [x] 使用bind_tools(tool_choice=auto)和ainvoke选择；最终不带可执行工具定义且明确禁工具，必要时使用已验证的tool_choice=none。不要通过provider retries偷偷增加模型请求次数；继续max_retries=0。parallel_tool_calls非必要，只有官方确认并实测支持才发送；应用仍检查数量。
+- [x] Prompt新增原词FAQ、演示数据、结果依据、失败不可编造与最终不再调用工具的约束；不以硬编码关键词路由替代模型选择。
+- [x] 用标注样例而非字符串单测评估Prompt：三个指定场景、普通问候、缺订单号、多工具诉求、工具失败、工单创建，记录选择/参数/结果一致性；真实模型验证在任务6最终再跑，离线此处先验证网关wire与静态样例结构。
+- [x] 模型测试及Ruff通过、主助手验收、即时记note后提交feat(model)。
 
 ### Task 4：持久化聊天、预算与SSE固定流程
 
@@ -194,4 +194,4 @@ assert final_calls_after_result_budget_error == 0
 
 spec的分层/四表/单工具/上下文/错误取消/SSE/页面/配置CI/验收分别映射任务1—6；五项Review Focus均有对应测试。接口统一使用TurnContext、ToolResult、StreamEvent与repository轮次方法；没有Agent循环、RAG、额外业务表或远端部署。页面例外和Prompt评估替代TDD已单独标注。
 
-计划状态：用户于2026-10-06批准，任务1数据层已通过真实MySQL CI与修复复审，任务2工具已通过评审与CI，当前执行任务3。真实MySQL CI验证因本机Docker运行环境阻塞提前进行，具体裁定与验证状态见development-log.md；本机Docker验收仍然保留。
+计划状态：用户于2026-10-06批准，任务1数据层已通过真实MySQL CI与修复复审，任务2工具已通过评审与CI，任务3模型层与CI已通过，当前执行任务4。真实MySQL CI验证因本机Docker运行环境阻塞提前进行，具体裁定与验证状态见development-log.md；本机Docker验收仍然保留。
