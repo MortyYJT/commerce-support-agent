@@ -194,4 +194,4 @@ assert final_calls_after_result_budget_error == 0
 
 spec的分层/四表/单工具/上下文/错误取消/SSE/页面/配置CI/验收分别映射任务1—6；五项Review Focus均有对应测试。接口统一使用TurnContext、ToolResult、StreamEvent与repository轮次方法；没有Agent循环、RAG、额外业务表或远端部署。页面例外和Prompt评估替代TDD已单独标注。
 
-计划状态：待用户审核。书面spec已通过；本计划获批前不写产品实现、安装依赖或启动数据库。
+计划状态：用户于2026-10-06批准，当前执行任务1。真实MySQL CI验证因本机Docker运行环境阻塞提前进行，具体裁定与验证状态见development-log.md；本机Docker验收仍然保留。

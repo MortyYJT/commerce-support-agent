@@ -158,3 +158,66 @@
 ### 翻车与返工
 
 - 文档检索精度问题已在计划阶段纠正；无产品实现返工。
+
+## 2026-10-06 — 计划评审通过与执行启动
+
+### 用户关键原话
+
+- 对六任务实现计划回复「通过」。
+
+### 关键产出与当前结论
+
+- 计划评审通过，按Luna max实现、主助手验收启动任务1，使用subagent-driven-development；按获批计划留在当前checkout的codex/stage-2-tools，不另建工作树。
+- 执行前基线实测34个测试通过；Docker daemon实测29.6.1可用，尚未宣称MySQL或应用部署通过。
+- 本计划专用SDD ledger/brief建立在忽略的.superpowers/sdd/2026-10-05-tools-implementation；完成任务共享接口/文件和各任务自身一致性预检。
+- 执行裁定：工具内部tool_result事件仅供ChatService消费，不作为公开SSE；实现者先做本地代码checkpoint供review-package审阅，验收通过后另提交即时里程碑记录。用户最终PR合并权不变。
+
+### 用户拒绝或纠偏
+
+- 无；不再重复询问执行方法或任务间继续权限。
+
+### 翻车与返工
+
+- CUA首次选择Docker应用返回超时；随后Docker CLI实测daemon已可用，未重复启动或要求用户确认。
+
+## 2026-10-06 — 任务1进行中的TDD证据与返工
+
+### 用户关键原话
+
+- 沿用计划批准「通过」与「密钥…全在.env」的约束。
+
+### 关键产出与当前结论
+
+- 实现者报告配置测试RED为3个缺字段失败，新增设置后GREEN为3通过；真实MySQL集成RED为7个缺database模块失败，数据库功能尚未验收。
+- 父助手只读查询官方mysql:8.4.11 manifest为200且支持amd64/arm64；未换镜像源或数据库技术。
+
+### 用户拒绝或纠偏
+
+- 父助手提前指出未知会话id不可自动建会话，必须拒绝；异步测试清理不可跨事件循环复用连接。实现者已调整测试方案。
+
+### 翻车与返工
+
+- 实现者报告pytest失败输出的tuple fixture repr显示了自动生成的本地测试MySQL密码，未涉及用户模型密钥。已要求修正fixture/异常输出、轮换仅本地测试凭据，报告与note只保留脱敏失败摘要；模型密钥保持原样。待后续复核脱敏测试输出。
+- Docker应用CUA再次读取超时；CLI仍可用，不以GUI访问失败宣称数据库故障或功能成功。
+
+## 2026-10-06 — 任务1代码检查点、运行环境阻塞与CI提前
+
+### 用户关键原话
+
+- 沿用「建立实际运行的CI/CD，明确区分已配置、检查通过和部署已验证」与计划批准。
+
+### 关键产出与当前结论
+
+- Luna提交代码检查点42e509b：四表、数据库配置、轮次repository、FAQ字面LIKE、工单幂等、显式初始化与种子。实现者报告离线37通过/9集成未运行；Ruff与编译检查通过。任务1尚未完成验收，独立任务review正在进行。
+- Docker官方镜像已下载；mysql容器停留created，启动请求不完成。最初无挂载Alpine探针也阻塞，父助手按systematic-debugging查日志并重启，得到VZErrorInvalidVirtualMachineConfiguration / storage device attachment invalid。
+- 完全停止Docker后按官方备份说明在仓库外APFS克隆Docker.raw，核对大小；无数据reset或卷删除。完整stop/start后无挂载Alpine可运行，mysql启动再次阻塞，尚未确认文件挂载具体根因。
+- 尝试Docker官方更新，返回validating application / spctl rejected；未绕过macOS验证。已向用户询问手动修复Docker的安排，同时继续可独立推进的代码/CI工作。
+- 裁定：将任务6已计划的真实MySQL CI前置，用独立测试库验证任务1再推进后续任务；成本是提前Draft PR和CI设置修复，不改变技术栈、不降低验收标准。Docker应用构建/本机实际部署仍在任务6，当前未验证，远端CD仍不在本章。
+
+### 用户拒绝或纠偏
+
+- 本机运行环境失败不自行改为SQLite/PostgreSQL、不用未核实镜像源、不把CI验证当本机部署验证。
+
+### 翻车与返工
+
+- Docker存储附件启动错误和官方更新验证拒绝已留痕；虚拟磁盘备份位于本地docker-recovery目录，不提交或上传。测试输出密码问题已脱敏并轮换本地测试密码，用户模型密钥保持原样。
