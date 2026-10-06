@@ -315,11 +315,13 @@ def test_done_is_emitted_only_after_final_commit():
         )
         context = await service.prepare(ChatRequest(message="Hello"))
 
-        events = [event async for event in service.stream(context)]
+        events = []
+        async for event in service.stream(context):
+            events.append(event)
+            if event.event == "done":
+                repository.trace.append("observed_done")
 
-        assert repository.trace.index("commit_completed") < events.index(
-            next(event for event in events if event.event == "done")
-        )
+        assert repository.trace.index("commit_completed") < repository.trace.index("observed_done")
         assert gateway.final_calls == 1
 
     _run(run())

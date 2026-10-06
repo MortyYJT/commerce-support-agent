@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Protocol
@@ -10,6 +9,7 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 
+from commerce_support.async_cleanup import close_async_iterator
 from commerce_support.config import Settings
 from commerce_support.errors import AppError
 
@@ -105,7 +105,7 @@ class ChatOpenAIModelGateway:
                     continue
                 yield ModelChunk(content=content, finish_reason=finish_reason)
         finally:
-            await _close_iterator(upstream)
+            await close_async_iterator(upstream)
 
     async def aclose(self) -> None:
         if self._closed:
@@ -129,15 +129,3 @@ def _text_content(content: object) -> str:
             and isinstance(block.get("text"), str)
         )
     return ""
-
-
-async def _close_iterator(iterator: object) -> None:
-    close = getattr(iterator, "aclose", None)
-    if close is None:
-        return
-    try:
-        await close()
-    except asyncio.CancelledError:
-        raise
-    except Exception:  # noqa: BLE001 - do not leak stream-close failures.
-        return

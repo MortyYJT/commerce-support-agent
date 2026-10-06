@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 from collections.abc import AsyncIterator
 
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 
+from commerce_support.async_cleanup import close_async_iterator
 from commerce_support.chat_types import StreamEvent
 from commerce_support.errors import AppError
 from commerce_support.schemas import ChatRequest
@@ -58,7 +58,7 @@ async def _event_stream(events: AsyncIterator[StreamEvent]) -> AsyncIterator[str
             if encoded is not None:
                 yield encoded
     finally:
-        await _close_iterator(events)
+        await close_async_iterator(events)
 
 
 def _encode_public_event(event: StreamEvent) -> str | None:
@@ -109,15 +109,3 @@ def _encode_public_event(event: StreamEvent) -> str | None:
             return None
         return encode_sse("error", {"code": code, "message": message})
     return None
-
-
-async def _close_iterator(iterator: object) -> None:
-    close = getattr(iterator, "aclose", None)
-    if close is None:
-        return
-    try:
-        await close()
-    except asyncio.CancelledError:
-        raise
-    except Exception:  # noqa: BLE001 - do not leak stream-close failures.
-        return

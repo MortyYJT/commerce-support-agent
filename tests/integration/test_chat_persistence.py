@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage, ToolMessage
@@ -74,6 +75,19 @@ def _read_events(response) -> list[tuple[str, dict[str, Any]]]:
         if len(lines) == 2:
             result.append((lines[0].removeprefix("event: "), json.loads(lines[1][6:])))
     return result
+
+
+async def _next_socket_event(lines) -> tuple[str, dict[str, Any]]:
+    event_name = None
+    data = None
+    while True:
+        line = await asyncio.wait_for(lines.__anext__(), timeout=5)
+        if line.startswith("event: "):
+            event_name = line.removeprefix("event: ")
+        elif line.startswith("data: "):
+            data = json.loads(line[6:])
+        elif line == "" and event_name is not None and data is not None:
+            return event_name, data
 
 
 class FakeGateway:
@@ -327,3 +341,139 @@ def test_real_mysql_final_commit_failure_stores_only_failed_partial_turn(
         assert messages[-1].content == "partial final answer"
 
     loop.run_until_complete(run())
+
+
+def test_real_mysql_disconnect_persists_cancelled_turn_allows_retry_and_excludes_history(
+    mysql_database: MySQLHandle,
+    local_http_server,
+) -> None:
+    async def verify() -> None:
+        from sqlalchemy import select
+
+        from commerce_support.app import create_app
+        from commerce_support.database import Database
+        from commerce_support.database.cli import initialize_database
+        from commerce_support.database.models import Conversation, Message
+        from commerce_support.database.repository import ChatRepository
+        from commerce_support.model import ModelChunk
+
+        settings = _settings(mysql_database.database_url)
+        database = Database(settings)
+        try:
+            await initialize_database(database)
+
+            class CancelThenRetryGateway:
+                def __init__(self) -> None:
+                    self.selection_calls = 0
+                    self.first_selection_started = asyncio.Event()
+                    self.first_selection_cancelled = asyncio.Event()
+
+                async def select_tools(self, _messages, _tools):
+                    self.selection_calls += 1
+                    if self.selection_calls == 1:
+                        self.first_selection_started.set()
+                        try:
+                            await asyncio.Event().wait()
+                        except asyncio.CancelledError:
+                            self.first_selection_cancelled.set()
+                            raise
+                    return AIMessage(content="")
+
+                async def _stream(self, _messages):
+                    yield ModelChunk("The retry completed.")
+                    yield ModelChunk("", "stop")
+
+                def stream_final(self, messages):
+                    return self._stream(messages)
+
+                async def aclose(self) -> None:
+                    return None
+
+            gateway = CancelThenRetryGateway()
+            app = create_app(settings=settings, gateway=gateway)
+
+            async with (
+                local_http_server(app) as base_url,
+                httpx.AsyncClient(timeout=5, trust_env=False) as client,
+            ):
+                first_response = await client.send(
+                    client.build_request(
+                        "POST",
+                        f"{base_url}/chat/stream",
+                        json={"message": "This turn will be cancelled."},
+                    ),
+                    stream=True,
+                )
+                assert first_response.status_code == 200
+                first_lines = first_response.aiter_lines()
+                first_event, first_data = await _next_socket_event(first_lines)
+                assert first_event == "conversation"
+                await asyncio.wait_for(gateway.first_selection_started.wait(), timeout=2)
+                await first_response.aclose()
+                await asyncio.wait_for(gateway.first_selection_cancelled.wait(), timeout=2)
+
+                conversation_id = first_data["conversation_id"]
+                deadline = asyncio.get_running_loop().time() + 5
+                cancelled_rows = None
+                while asyncio.get_running_loop().time() < deadline:
+                    async with database.sessions() as session:
+                        conversation = await session.get(Conversation, conversation_id)
+                        rows = list(
+                            await session.scalars(
+                                select(Message)
+                                .where(Message.conversation_id == conversation_id)
+                                .order_by(Message.id)
+                            )
+                        )
+                    if (
+                        conversation is not None
+                        and conversation.active_turn_id is None
+                        and rows
+                        and all(row.turn_status == "cancelled" for row in rows)
+                    ):
+                        cancelled_rows = rows
+                        break
+                    await asyncio.sleep(0.05)
+
+                assert cancelled_rows is not None
+                first_turn_id = first_data["turn_id"]
+                assert all(row.turn_id == first_turn_id for row in cancelled_rows)
+                assert [row.role for row in cancelled_rows] == ["user", "assistant"]
+                assert gateway.selection_calls == 1
+
+                retry_response = await client.send(
+                    client.build_request(
+                        "POST",
+                        f"{base_url}/chat/stream",
+                        json={
+                            "message": "Retry after cancellation.",
+                            "conversation_id": conversation_id,
+                        },
+                    ),
+                    stream=True,
+                )
+                assert retry_response.status_code == 200
+                retry_events = []
+                retry_lines = retry_response.aiter_lines()
+                while True:
+                    event_name, event_data = await _next_socket_event(retry_lines)
+                    retry_events.append((event_name, event_data))
+                    if event_name in {"done", "error"}:
+                        break
+                await retry_response.aclose()
+
+            assert [event for event, _data in retry_events][-1] == "done"
+            assert retry_events[0][1]["conversation_id"] == conversation_id
+            assert gateway.selection_calls == 2
+
+            history = await ChatRepository(database).successful_history(conversation_id)
+            assert len(history) == 1
+            assert [message.content for message in history[0] if message.type == "human"] == [
+                "Retry after cancellation."
+            ]
+            assert history[0][-1].content == "The retry completed."
+
+        finally:
+            await database.aclose()
+
+    asyncio.run(verify())

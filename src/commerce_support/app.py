@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from commerce_support.async_cleanup import run_shielded_cleanup
 from commerce_support.config import Settings
 from commerce_support.database import Database
 from commerce_support.database.repository import ChatRepository, FAQRepository, TicketRepository
@@ -61,7 +62,7 @@ def create_app(
                 current_database = application.state.database
                 if application.state.database_owned and current_database is not None:
                     try:
-                        await current_database.aclose()
+                        await run_shielded_cleanup(current_database.aclose())
                     finally:
                         application.state.database = None
                         application.state.database_owned = False
@@ -69,7 +70,7 @@ def create_app(
                 current_gateway = application.state.gateway
                 close = getattr(current_gateway, "aclose", None)
                 if close is not None:
-                    await close()
+                    await run_shielded_cleanup(close())
 
     application = FastAPI(
         title="Commerce Support API",

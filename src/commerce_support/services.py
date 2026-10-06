@@ -9,6 +9,7 @@ import httpx
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from openai import APITimeoutError
 
+from commerce_support.async_cleanup import close_async_iterator, run_shielded_cleanup
 from commerce_support.chat_types import StreamEvent, TurnContext
 from commerce_support.config import Settings
 from commerce_support.context import build_persisted_messages
@@ -183,7 +184,7 @@ class ChatService:
                 except Exception as error:  # noqa: BLE001 - sanitize provider errors.
                     raise _upstream_error(error) from None
                 finally:
-                    await _close_iterator(upstream)
+                    await close_async_iterator(upstream)
 
                 if answer_parts:
                     raise AppError(
@@ -198,11 +199,15 @@ class ChatService:
                 )
         except GeneratorExit:
             if not completed:
-                await self._finish_best_effort(ctx, "".join(answer_parts), "cancelled")
+                await run_shielded_cleanup(
+                    self._finish_best_effort(ctx, "".join(answer_parts), "cancelled")
+                )
             raise
         except asyncio.CancelledError:
             if not completed:
-                await self._finish_best_effort(ctx, "".join(answer_parts), "cancelled")
+                await run_shielded_cleanup(
+                    self._finish_best_effort(ctx, "".join(answer_parts), "cancelled")
+                )
             raise
         except TimeoutError:
             await self._finish_best_effort(ctx, "".join(answer_parts), "failed")
@@ -261,7 +266,7 @@ class ChatService:
                 elif event.event == "tool_status":
                     yield _public_tool_status(event, name=name, call_id=call_id)
         finally:
-            await _close_iterator(executor_events)
+            await close_async_iterator(executor_events)
 
         if not result_added:
             raise AppError(
@@ -374,15 +379,3 @@ def _finish_error(finish_reason: str) -> AppError:
         "模型未能完成回答，请稍后重试。",
         status_code=502,
     )
-
-
-async def _close_iterator(iterator: object) -> None:
-    close = getattr(iterator, "aclose", None)
-    if close is None:
-        return
-    try:
-        await close()
-    except asyncio.CancelledError:
-        raise
-    except Exception:  # noqa: BLE001 - do not leak upstream-close failures.
-        return

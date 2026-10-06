@@ -10,6 +10,7 @@ from langchain_core.messages import AIMessage
 from commerce_support.app import create_app
 from commerce_support.chat_types import TurnContext
 from commerce_support.config import Settings
+from commerce_support.model import ChatOpenAIModelGateway
 from commerce_support.tools.executor import ToolExecutor
 from commerce_support.tools.registry import build_registry
 from commerce_support.tools.schemas import FAQQueryArgs
@@ -137,6 +138,7 @@ class SocketRepository:
         self.tool_results.append((call_id, result))
 
     async def finish_turn(self, _ctx: TurnContext, text: str, status: str) -> None:
+        await asyncio.sleep(0)
         self.finished.append((text, status))
 
 
@@ -151,6 +153,19 @@ async def _read_event(lines) -> tuple[str, str]:
     data_line = await asyncio.wait_for(lines.__anext__(), timeout=2)
     await asyncio.wait_for(lines.__anext__(), timeout=2)
     return event_line, data_line
+
+
+def _gateway_for_upstream_stream(stream):
+    class StubbedModelGateway(ChatOpenAIModelGateway):
+        async def select_tools(self, _messages, _tools):
+            return AIMessage(content="")
+
+        async def aclose(self):
+            return None
+
+    gateway = object.__new__(StubbedModelGateway)
+    gateway._model = SimpleNamespace(astream=lambda _messages: stream)
+    return gateway
 
 
 def test_real_disconnect_during_tool_selection_cancels_provider_and_turn(local_http_server):
@@ -291,24 +306,22 @@ def test_real_disconnect_before_final_first_token_cancels_provider(local_http_se
         final_cancelled = asyncio.Event()
         repository = SocketRepository()
 
-        class BlockingFinalGateway:
-            async def select_tools(self, _messages, _tools):
-                return AIMessage(content="selection text is hidden")
+        class BlockingFinalStream:
+            def __aiter__(self):
+                return self
 
-            async def _stream(self, _messages):
+            async def __anext__(self):
                 final_started.set()
-                try:
-                    await asyncio.Event().wait()
-                    yield SimpleNamespace(content="unreachable", finish_reason="stop")
-                finally:
-                    final_cancelled.set()
+                await asyncio.Event().wait()
+                raise StopAsyncIteration
 
-            def stream_final(self, messages):
-                return self._stream(messages)
+            async def aclose(self):
+                await asyncio.sleep(0)
+                final_cancelled.set()
 
         app = create_app(
             settings=Settings(_env_file=None, llm_api_key=None),
-            gateway=BlockingFinalGateway(),
+            gateway=_gateway_for_upstream_stream(BlockingFinalStream()),
             repository=repository,
         )
         async with (
@@ -337,23 +350,29 @@ def test_real_disconnect_after_delta_persists_partial_as_cancelled(local_http_se
         final_cancelled = asyncio.Event()
         repository = SocketRepository()
 
-        class PartialFinalGateway:
-            async def select_tools(self, _messages, _tools):
-                return AIMessage(content="")
+        class PartialFinalStream:
+            def __init__(self) -> None:
+                self.sent_partial = False
 
-            async def _stream(self, _messages):
-                try:
-                    yield SimpleNamespace(content="partial answer", finish_reason=None)
-                    await asyncio.Event().wait()
-                finally:
-                    final_cancelled.set()
+            def __aiter__(self):
+                return self
 
-            def stream_final(self, messages):
-                return self._stream(messages)
+            async def __anext__(self):
+                if not self.sent_partial:
+                    self.sent_partial = True
+                    return SimpleNamespace(
+                        content="partial answer", response_metadata={}
+                    )
+                await asyncio.Event().wait()
+                raise StopAsyncIteration
+
+            async def aclose(self):
+                await asyncio.sleep(0)
+                final_cancelled.set()
 
         app = create_app(
             settings=Settings(_env_file=None, llm_api_key=None),
-            gateway=PartialFinalGateway(),
+            gateway=_gateway_for_upstream_stream(PartialFinalStream()),
             repository=repository,
         )
         async with (
