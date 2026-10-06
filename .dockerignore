@@ -1,0 +1,11 @@
+# Whitelist the package inputs so local credentials and evaluation data stay out of the build context.
+**
+!pyproject.toml
+!requirements.txt
+!src/
+!src/commerce_support/
+!src/commerce_support/**
+
+**/.DS_Store
+**/__pycache__/
+**/*.py[cod]

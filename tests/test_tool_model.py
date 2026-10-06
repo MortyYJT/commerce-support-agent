@@ -225,3 +225,98 @@ def test_invalid_tool_calls_are_returned_without_losing_raw_arguments() -> None:
         assert invalid_call["error"]
 
     asyncio.run(verify())
+
+
+def test_malformed_tool_feedback_is_wired_to_final_provider_request() -> None:
+    from commerce_support.schemas import ChatRequest
+    from commerce_support.services import ChatService
+    from commerce_support.tools.executor import ToolExecutor
+
+    raw_arguments = '{"keyword":'
+    requests: list[tuple[str, dict[str, object]]] = []
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        requests.append((request.url.path, payload))
+        if len(requests) == 1:
+            return httpx.Response(
+                200,
+                content=_tool_call_response(raw_arguments),
+                headers={"content-type": "application/json"},
+            )
+
+        body = (
+            'data: {"id":"chatcmpl-final","object":"chat.completion.chunk",'
+            '"created":1,"model":"wire-model","choices":[{"index":0,'
+            '"delta":{"content":"I could not use that search request."},'
+            '"finish_reason":null}]}\n\n'
+            'data: {"id":"chatcmpl-final","object":"chat.completion.chunk",'
+            '"created":1,"model":"wire-model","choices":[{"index":0,'
+            '"delta":{},"finish_reason":"stop"}]}\n\n'
+            "data: [DONE]\n\n"
+        )
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            content=body.encode("utf-8"),
+        )
+
+    class RecordingRepository:
+        async def begin_turn(self, message: str, conversation_id: str | None = None):
+            from commerce_support.chat_types import TurnContext
+
+            return TurnContext(conversation_id or "conversation-wire", "turn-wire", message)
+
+        async def successful_history(self, _conversation_id: str):
+            return []
+
+        async def append_assistant_call(self, _ctx, message):
+            self.assistant_call = message
+
+        async def append_tool_result(self, _ctx, call_id: str, result):
+            self.tool_results.append((call_id, result))
+
+        async def finish_turn(self, _ctx, _text: str, _status: str):
+            return None
+
+        def __init__(self) -> None:
+            self.tool_results: list[tuple[str, object]] = []
+
+    async def verify() -> None:
+        from commerce_support.model import ChatOpenAIModelGateway
+
+        settings = _settings().model_copy(update={"input_token_budget": 6144})
+        gateway = ChatOpenAIModelGateway(settings, transport=httpx.MockTransport(respond))
+        repository = RecordingRepository()
+        service = ChatService(
+            gateway,
+            settings,
+            repository,
+            ToolExecutor(settings),
+            registry_factory=lambda _ctx: _registry(),
+        )
+        try:
+            context = await service.prepare(ChatRequest(message="What is the returns policy?"))
+            events = [event async for event in service.stream(context)]
+        finally:
+            await gateway.aclose()
+
+        assert [event.event for event in events][-1] == "done"
+        assert len(repository.tool_results) == 1
+        assert repository.tool_results[0][0] == "call-test"
+        assert len(requests) == 2
+        final_path, final_payload = requests[1]
+        assert final_path == "/v1/chat/completions"
+        assert not final_payload.get("tools")
+        assert final_payload.get("tool_choice", "none") == "none"
+        assistant_message = next(
+            message for message in final_payload["messages"] if message["role"] == "assistant"
+        )
+        assert assistant_message["tool_calls"][0]["function"]["arguments"] == raw_arguments
+        tool_message = next(
+            message for message in final_payload["messages"] if message["role"] == "tool"
+        )
+        assert tool_message["tool_call_id"] == "call-test"
+        assert json.loads(tool_message["content"])["code"] == "INVALID_TOOL_CALL"
+
+    asyncio.run(verify())
