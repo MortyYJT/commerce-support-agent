@@ -342,3 +342,9 @@
 - 关键产出：c9a9a22取消修复；task-4-rereview.md 两项ADDRESSED，无新Critical/Important。有界AnyIO shield覆盖结束写入与迭代器关闭；实际MySQL断连回归验证cancelled落库、释放租约、同会话重试、取消历史排除。最新真实CI37435369591两job成功，MySQL 21 passed in 5.76s；离线70 passed。主助手真实DeepSeek客户端中断后独立回读会话idle、active_turn_id=null、两行cancelled，同会话后续请求成功delta/done。
 - 拒绝或纠偏：复审另用实际安装的ChatOpenAI/LangChain/OpenAI和模拟SSE transport验证首token前/后关闭，2项通过；不把受控transport当真实供应商验证。根助手回读配置150/180秒、工具5秒/1次重试、输入4096，先前数据层条件写入与锁过期证据仍适用；畸形JSON反馈完整上游协议交Task6明确验证。
 - 翻车与返工：初次提交范围检查漏掉SDD临时report，已在c9a9a22取消Git跟踪并保留本地，未amend或改写历史。测试中直接给假provider generator加异步finalizer造成4项失败，改为生产网关wrapper加可等待关闭的真实socket测试，独立复审判定覆盖应用拥有的关闭契约。Task4现通过验收，开始Task5页面Vibe接入。
+
+### Task5 页面 Vibe 浏览器验收通过
+- 用户关键原话：“工具轨迹小徽章”；“聊天页改造是例外，用 Vibe Coding 方式直接做”；“生成过程中是只有方框，然后点击可以中止”。
+- 关键产出：Luna实现app.js/app.css，node --check与diff --check通过。主助手真实浏览器8002验证物流1001徽章与随机演示答案，追问返回1001；退货政策调用query_faq命中，邮费原词keyword=邮费、实际存储工具结果not_found、徽章没有匹配结果。AX观察回复由正在回复/“当然”增长到完整内容；纯黑方框停止后显示已停止，立即下一条你好正常完成。刷新空态后数据库确认新conversation_id与4条completed消息，不沿用前一20条消息会话。
+- 拒绝或纠偏：重试徽章使用明确受控的单请求SSE running attempt1→running attempt2→succeeded验证，DOM只有1枚徽章；这是页面状态帧验收，不冒充真实业务重试。验收后清除CDP拦截并刷新页面，正式页面内容无受控结果。截图保存于工作区外stage2-browser-host.jpg与stage2-browser-stream.jpg，后者为完整回复截图；未把截图称为未完成token证据，流式增量由当时AX状态验证。
+- 翻车与返工：首次用较长问题做取消时先触发默认4096预算错误，因已结束无法点击停止；随后短物流问题真实取消通过。该默认预算对中文描述容量偏紧，留Task6实际配置/评估明确处理。CDP工具要求Fetch限定非Document类型，清除使用空patterns，均按工具提示修正，无遗留拦截。UI本身不套TDD/code review，现通知Luna提交仅两份页面文件。

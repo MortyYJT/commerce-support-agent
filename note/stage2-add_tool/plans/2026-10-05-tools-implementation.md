@@ -162,9 +162,9 @@ assert final_calls_after_result_budget_error == 0
 
 **Interfaces:** 请求只发message/conversation_id；conversation事件更新页面会话id；tool_status以tool_call_id更新当前助手气泡徽章；终态error/done及abort恢复发送按钮。
 
-- [ ] 直接实现会话状态与徽章，保留既有色彩、名称、小鱼及方框取消，不设置本任务TDD或code review门槛。
-- [ ] 浏览器体验工具running→终态、流式文字、多轮、未命中、主动取消及刷新新会话；同一次retry更新同徽章，用户内容用安全文本DOM，不插入工具返回HTML。
-- [ ] 主助手做浏览器体验验收，立即记note，提交feat(ui)，保留英文bullet body。
+- [x] 直接实现会话状态与徽章，保留既有色彩、名称、小鱼及方框取消，不设置本任务TDD或code review门槛。
+- [x] 浏览器体验工具running→终态、流式文字、多轮、未命中、主动取消及刷新新会话；同一次retry更新同徽章，用户内容用安全文本DOM，不插入工具返回HTML。
+- [x] 主助手做浏览器体验验收，立即记note，提交feat(ui)，保留英文bullet body。
 
 ### Task 6：Docker应用、CI与整章交付
 
