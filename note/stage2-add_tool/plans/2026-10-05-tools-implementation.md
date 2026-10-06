@@ -93,7 +93,7 @@ assert cancelled_turn_id not in history_turn_ids
 
 **Interfaces:** build_registry(repository: ChatRepository, faq: FAQRepository, tickets: TicketRepository, ctx: TurnContext, rng: random.Random)->dict[str, BaseTool]，用闭包注入服务端上下文，返回五个@tool；ToolExecutor(settings).execute(call: dict, registry: dict[str, BaseTool], ctx: TurnContext)->AsyncIterator[StreamEvent]，最终事件携带ToolResult供聊天服务保存/回灌。内部结果事件不直接发送公开原始payload；公开tool_status按固定字段映射。
 
-- [ ] 写失败测试test_five_registered_decorated_tools、test_extra_args_rejected、test_faq_keyword_must_be_original_substring、test_like_wildcards_are_literal、test_timeout_retries_once、test_validation_never_retries、test_cancel_never_retries。
+- [x] 写失败测试test_five_registered_decorated_tools、test_extra_args_rejected、test_faq_keyword_must_be_original_substring、test_like_wildcards_are_literal、test_timeout_retries_once、test_validation_never_retries、test_cancel_never_retries。
 
 ```python
 assert set(registry) == {"query_order", "query_product", "query_logistics", "query_faq", "create_ticket"}
@@ -104,11 +104,11 @@ assert ticket_count_after_retry - initial_ticket_count == 1
 assert first_ticket_number == retry_ticket_number
 ```
 
-- [ ] 运行`.venv/bin/python -m pytest tests/test_tools.py tests/test_tool_executor.py -q`，确认目标行为未实现而失败。
-- [ ] 实现严格输入模型和五个async装饰工具。query_*随机结果带demo=true及输入id；FAQ先验证原词再参数化LIKE问题字段；退货政策命中、邮费零结果。工具返回统一ToolResult。
-- [ ] 实现白名单、asyncio期限及一次0.2秒退避。仅明确暂时故障重试；取消不重试，任务取消后关闭数据库会话。create_ticket以ctx与call_id稳定散列产生TK-前缀号码，唯一键冲突读取已有记录并核对同一业务参数。
-- [ ] 集成测试test_ticket_commit_then_timeout_reuses_number：模拟写入已提交后响应超时，重试后tickets行数增量=1且号码相同。注入rng校验三个演示工具确实保留本次结果，不在回灌时重新随机。
-- [ ] 任务测试通过、主助手验收、即时记note后提交feat(tools)。
+- [x] 运行`.venv/bin/python -m pytest tests/test_tools.py tests/test_tool_executor.py -q`，确认目标行为未实现而失败。
+- [x] 实现严格输入模型和五个async装饰工具。query_*随机结果带demo=true及输入id；FAQ先验证原词再参数化LIKE问题字段；退货政策命中、邮费零结果。工具返回统一ToolResult。
+- [x] 实现白名单、asyncio期限及一次0.2秒退避。仅明确暂时故障重试；取消不重试，任务取消后关闭数据库会话。create_ticket以ctx与call_id稳定散列产生TK-前缀号码，唯一键冲突读取已有记录并核对同一业务参数。
+- [x] 集成测试test_ticket_commit_then_timeout_reuses_number：模拟写入已提交后响应超时，重试后tickets行数增量=1且号码相同。注入rng校验三个演示工具确实保留本次结果，不在回灌时重新随机。
+- [x] 任务测试通过、主助手验收、即时记note后提交feat(tools)。
 
 ### Task 3：模型选择与禁工具最终生成
 
@@ -134,7 +134,7 @@ assert selection_payload["max_tokens"] == settings.max_output_tokens
 
 ### Task 4：持久化聊天、预算与SSE固定流程
 
-**Files:** 修改services.py、context.py、routes.py、schemas.py、app.py；新增tests/test_tool_chat.py与tests/integration/test_chat_persistence.py；更新现有stream/disconnect/http/context测试。
+**Files:** 修改services.py、context.py、routes.py、schemas.py、app.py；必要时补database/repository.py的无效JSON调用持久化与历史还原（不更改已批准行为）；新增tests/test_tool_chat.py与tests/integration/test_chat_persistence.py；更新现有stream/disconnect/http/context测试。
 
 **Interfaces:** ChatRequest(message, conversation_id=None)；ChatService(gateway, settings, repository, tool_executor).prepare(request)->TurnContext与stream(ctx)->AsyncIterator[StreamEvent]；context.build_persisted_messages(system, history_groups, current_group, tool_schemas, budget)->list[BaseMessage]。routes仅编码公开事件；app通过lifespan创建/关闭Database并注入服务，测试可注入假repo，不要求离线启动MySQL。
 
@@ -194,4 +194,4 @@ assert final_calls_after_result_budget_error == 0
 
 spec的分层/四表/单工具/上下文/错误取消/SSE/页面/配置CI/验收分别映射任务1—6；五项Review Focus均有对应测试。接口统一使用TurnContext、ToolResult、StreamEvent与repository轮次方法；没有Agent循环、RAG、额外业务表或远端部署。页面例外和Prompt评估替代TDD已单独标注。
 
-计划状态：用户于2026-10-06批准，任务1数据层已通过真实MySQL CI与修复复审，当前执行任务2。真实MySQL CI验证因本机Docker运行环境阻塞提前进行，具体裁定与验证状态见development-log.md；本机Docker验收仍然保留。
+计划状态：用户于2026-10-06批准，任务1数据层已通过真实MySQL CI与修复复审，任务2工具已通过评审与CI，当前执行任务3。真实MySQL CI验证因本机Docker运行环境阻塞提前进行，具体裁定与验证状态见development-log.md；本机Docker验收仍然保留。
