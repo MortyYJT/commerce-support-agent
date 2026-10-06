@@ -273,7 +273,9 @@ def test_finish_rejects_a_lease_that_expires_while_waiting_for_the_row_lock(
         await _initialize(database)
         repository = ChatRepository(database)
         context = await repository.begin_turn("finish after a lock wait")
-        lease_expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=3)
+        lease_expires_at = (datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=3)).replace(
+            microsecond=850_000
+        )
 
         async with database.sessions.begin() as session:
             await session.execute(
@@ -281,6 +283,12 @@ def test_finish_rejects_a_lease_that_expires_while_waiting_for_the_row_lock(
                 .where(Conversation.id == context.conversation_id)
                 .values(active_until=lease_expires_at)
             )
+
+        async with database.sessions() as session:
+            persisted_lease_expiry = await session.scalar(
+                select(Conversation.active_until).where(Conversation.id == context.conversation_id)
+            )
+        assert persisted_lease_expiry is not None
 
         lock_session = database.sessions()
         await lock_session.begin()
@@ -315,8 +323,8 @@ def test_finish_rejects_a_lease_that_expires_while_waiting_for_the_row_lock(
                 pass
             if lock_attempt_seen:
                 now = datetime.now(UTC).replace(tzinfo=None)
-                finish_started_before_expiry = now < lease_expires_at
-                await asyncio.sleep(max(0, (lease_expires_at - now).total_seconds()) + 0.2)
+                finish_started_before_expiry = now < persisted_lease_expiry
+                await asyncio.sleep(max(0, (persisted_lease_expiry - now).total_seconds()) + 0.2)
         finally:
             event.remove(database.engine.sync_engine, "before_cursor_execute", signal_lock_attempt)
             await lock_session.rollback()
