@@ -13,6 +13,8 @@ from commerce_support.database.engine import Database
 from commerce_support.database.exceptions import (
     ConversationNotFoundError,
     CorruptHistoryError,
+    TicketCallMismatchError,
+    TicketConflictError,
     ToolCallNotFoundError,
     ToolResultConflictError,
     TurnConflictError,
@@ -268,18 +270,18 @@ class ChatRepository:
         if not isinstance(text, str):
             raise TypeError("turn text must be a string")
 
-        now = utc_now()
         async with self._sessions() as session, session.begin():
-            await _lock_owned_conversation(session, ctx, now=now)
+            await _lock_owned_conversation(session, ctx)
             if status == "completed":
                 await _require_paired_tool_calls(session, ctx)
 
+            release_time = utc_now()
             released = await session.execute(
                 update(Conversation)
                 .where(
                     Conversation.id == ctx.conversation_id,
                     Conversation.active_turn_id == ctx.turn_id,
-                    Conversation.active_until > now,
+                    Conversation.active_until > release_time,
                 )
                 .values(active_turn_id=None, active_until=None, status="idle")
             )
@@ -355,10 +357,20 @@ class TicketRepository:
         digest = hashlib.sha256(
             f"{ctx.conversation_id}\x1f{ctx.turn_id}\x1f{call_id}".encode()
         ).hexdigest()[:20]
-        ticket_id = f"TKT-{digest.upper()}"
+        ticket_id = f"TK-{digest.upper()}"
         async with self._sessions() as session, session.begin():
             await _lock_owned_conversation(session, ctx)
-            await _require_assistant_tool_call(session, ctx, call_id)
+            recorded_call = await _require_assistant_tool_call(session, ctx, call_id)
+            if recorded_call.get("name") != "create_ticket":
+                raise TicketCallMismatchError(
+                    "stored tool call is not authorized to create a ticket"
+                )
+            if recorded_call.get("args") != {
+                "description": description,
+                "ticket_type": ticket_type,
+            }:
+                raise TicketCallMismatchError("ticket arguments differ from the recorded tool call")
+
             ticket = await session.get(Ticket, ticket_id)
             if ticket is None:
                 ticket = Ticket(
@@ -372,14 +384,21 @@ class TicketRepository:
                 )
                 session.add(ticket)
                 await session.flush()
+            elif not _ticket_matches_request(
+                ticket,
+                ctx,
+                call_id=call_id,
+                description=description,
+                ticket_type=ticket_type,
+                ticket_id=ticket_id,
+            ):
+                raise TicketConflictError("ticket idempotency key conflicts with stored data")
             return _ticket_result(ticket)
 
 
 async def _lock_owned_conversation(
     session: AsyncSession,
     ctx: TurnContext,
-    *,
-    now=None,
 ) -> Conversation:
     conversation = await session.scalar(
         select(Conversation).where(Conversation.id == ctx.conversation_id).with_for_update()
@@ -387,7 +406,7 @@ async def _lock_owned_conversation(
     if conversation is None:
         raise ConversationNotFoundError("conversation not found")
 
-    check_time = now or utc_now()
+    check_time = utc_now()
     if (
         conversation.active_turn_id != ctx.turn_id
         or conversation.active_until is None
@@ -395,6 +414,25 @@ async def _lock_owned_conversation(
     ):
         raise TurnOwnershipError("turn no longer owns the conversation lease")
     return conversation
+
+
+def _ticket_matches_request(
+    ticket: Ticket,
+    ctx: TurnContext,
+    *,
+    call_id: str,
+    description: str,
+    ticket_type: str,
+    ticket_id: str,
+) -> bool:
+    return (
+        ticket.ticket_id == ticket_id
+        and ticket.conversation_id == ctx.conversation_id
+        and ticket.turn_id == ctx.turn_id
+        and ticket.tool_call_id == call_id
+        and ticket.description == description
+        and ticket.ticket_type == ticket_type
+    )
 
 
 async def _require_assistant_tool_call(

@@ -22,5 +22,13 @@ class ToolResultConflictError(RuntimeError):
     """Raised when a repeated tool call is given a different stored result."""
 
 
+class TicketCallMismatchError(RuntimeError):
+    """Raised when a stored tool call does not authorize the requested ticket."""
+
+
+class TicketConflictError(RuntimeError):
+    """Raised when an idempotent ticket call conflicts with stored ticket data."""
+
+
 class CorruptHistoryError(RuntimeError):
     """Raised when stored successful messages do not form valid tool-call pairs."""
