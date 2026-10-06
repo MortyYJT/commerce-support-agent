@@ -9,7 +9,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import func, inspect, select, update
+from sqlalchemy import event, func, inspect, select, update
 from sqlalchemy.engine import make_url
 
 pytestmark = pytest.mark.integration
@@ -73,6 +73,32 @@ async def _table_counts(database: Any) -> dict[str, int]:
         for table_name, model in models.items():
             counts[table_name] = await session.scalar(select(func.count()).select_from(model))
         return counts
+
+
+async def _append_assistant_tool_call(
+    repository: Any,
+    context: Any,
+    *,
+    name: str,
+    args: dict[str, Any],
+    call_id: str,
+) -> None:
+    from langchain_core.messages import AIMessage
+
+    await repository.append_assistant_call(
+        context,
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": name,
+                    "args": args,
+                    "id": call_id,
+                    "type": "tool_call",
+                }
+            ],
+        ),
+    )
 
 
 def test_exactly_four_tables_and_foreign_keys(
@@ -234,6 +260,97 @@ def test_expired_turn_cannot_finish_a_new_turn(mysql_database: MySQLHandle) -> N
     loop.run_until_complete(run())
 
 
+def test_finish_rejects_a_lease_that_expires_while_waiting_for_the_row_lock(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import Conversation, Message
+        from commerce_support.database.repository import ChatRepository, TurnOwnershipError
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        repository = ChatRepository(database)
+        context = await repository.begin_turn("finish after a lock wait")
+        lease_expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=3)
+
+        async with database.sessions.begin() as session:
+            await session.execute(
+                update(Conversation)
+                .where(Conversation.id == context.conversation_id)
+                .values(active_until=lease_expires_at)
+            )
+
+        lock_session = database.sessions()
+        await lock_session.begin()
+        await lock_session.scalar(
+            select(Conversation).where(Conversation.id == context.conversation_id).with_for_update()
+        )
+        lock_attempted = asyncio.Event()
+
+        def signal_lock_attempt(
+            connection: Any,
+            cursor: Any,
+            statement: str,
+            parameters: Any,
+            execution_context: Any,
+            executemany: bool,
+        ) -> None:
+            del connection, cursor, parameters, execution_context, executemany
+            if "conversations" in statement.lower() and "for update" in statement.lower():
+                lock_attempted.set()
+
+        event.listen(database.engine.sync_engine, "before_cursor_execute", signal_lock_attempt)
+        finish_task = asyncio.create_task(
+            repository.finish_turn(context, "must not be saved", "completed")
+        )
+        lock_attempt_seen = False
+        finish_started_before_expiry = False
+        try:
+            try:
+                await asyncio.wait_for(lock_attempted.wait(), timeout=2)
+                lock_attempt_seen = True
+            except TimeoutError:
+                pass
+            if lock_attempt_seen:
+                now = datetime.now(UTC).replace(tzinfo=None)
+                finish_started_before_expiry = now < lease_expires_at
+                await asyncio.sleep(max(0, (lease_expires_at - now).total_seconds()) + 0.2)
+        finally:
+            event.remove(database.engine.sync_engine, "before_cursor_execute", signal_lock_attempt)
+            await lock_session.rollback()
+            await lock_session.close()
+
+        result = await asyncio.gather(finish_task, return_exceptions=True)
+        assert lock_attempt_seen
+        assert finish_started_before_expiry
+        assert len(result) == 1
+        assert isinstance(result[0], TurnOwnershipError)
+
+        async with database.sessions() as session:
+            conversation = await session.get(Conversation, context.conversation_id)
+            messages = list(
+                await session.scalars(
+                    select(Message).where(
+                        Message.conversation_id == context.conversation_id,
+                        Message.turn_id == context.turn_id,
+                    )
+                )
+            )
+
+        assert conversation is not None
+        assert conversation.active_turn_id == context.turn_id
+        assert messages
+        assert all(message.turn_status != "completed" for message in messages)
+        assert not any(
+            message.role == "assistant" and message.content == "must not be saved"
+            for message in messages
+        )
+
+    loop.run_until_complete(run())
+
+
 def test_only_completed_turns_enter_stable_paired_history(
     mysql_database: MySQLHandle,
 ) -> None:
@@ -289,6 +406,186 @@ def test_only_completed_turns_enter_stable_paired_history(
             '{"status":"success","data":[{"question":"Return policy","answer":"30 days"}]}'
         )
         assert history[0][3].content == "Returns are accepted within 30 days."
+
+    loop.run_until_complete(run())
+
+
+def test_ticket_creation_rejects_a_different_tool_name(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import Ticket
+        from commerce_support.database.repository import ChatRepository, TicketRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        chat_repository = ChatRepository(database)
+        ticket_repository = TicketRepository(database)
+        context = await chat_repository.begin_turn("find a return policy")
+        await _append_assistant_tool_call(
+            chat_repository,
+            context,
+            name="query_faq",
+            args={"keyword": "return policy"},
+            call_id="call-not-a-ticket",
+        )
+
+        with pytest.raises(RuntimeError):
+            await ticket_repository.create_once(
+                context, "call-not-a-ticket", "Create a return request.", "return"
+            )
+
+        async with database.sessions() as session:
+            count = await session.scalar(
+                select(func.count())
+                .select_from(Ticket)
+                .where(Ticket.conversation_id == context.conversation_id)
+            )
+        assert count == 0
+
+    loop.run_until_complete(run())
+
+
+def test_ticket_creation_rejects_arguments_that_differ_from_the_tool_call(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import Ticket
+        from commerce_support.database.repository import ChatRepository, TicketRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        chat_repository = ChatRepository(database)
+        ticket_repository = TicketRepository(database)
+        context = await chat_repository.begin_turn("create a return request")
+        await _append_assistant_tool_call(
+            chat_repository,
+            context,
+            name="create_ticket",
+            args={"description": "Recorded description", "ticket_type": "return"},
+            call_id="call-ticket-args-mismatch",
+        )
+
+        with pytest.raises(RuntimeError):
+            await ticket_repository.create_once(
+                context, "call-ticket-args-mismatch", "Different description", "return"
+            )
+
+        async with database.sessions() as session:
+            count = await session.scalar(
+                select(func.count())
+                .select_from(Ticket)
+                .where(Ticket.conversation_id == context.conversation_id)
+            )
+        assert count == 0
+
+    loop.run_until_complete(run())
+
+
+def test_ticket_replay_rejects_changed_arguments_without_mutation(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import Ticket
+        from commerce_support.database.repository import ChatRepository, TicketRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        chat_repository = ChatRepository(database)
+        ticket_repository = TicketRepository(database)
+        context = await chat_repository.begin_turn("create a return request")
+        original_description = "The item arrived damaged."
+        await _append_assistant_tool_call(
+            chat_repository,
+            context,
+            name="create_ticket",
+            args={"description": original_description, "ticket_type": "return"},
+            call_id="call-ticket-replay-mismatch",
+        )
+        original = await ticket_repository.create_once(
+            context, "call-ticket-replay-mismatch", original_description, "return"
+        )
+
+        with pytest.raises(RuntimeError):
+            await ticket_repository.create_once(
+                context,
+                "call-ticket-replay-mismatch",
+                "Changed description.",
+                "exchange",
+            )
+
+        async with database.sessions() as session:
+            stored_ticket = await session.get(Ticket, original["ticket_id"])
+            count = await session.scalar(
+                select(func.count())
+                .select_from(Ticket)
+                .where(Ticket.conversation_id == context.conversation_id)
+            )
+        assert count == 1
+        assert stored_ticket is not None
+        assert stored_ticket.description == original_description
+        assert stored_ticket.ticket_type == "return"
+
+    loop.run_until_complete(run())
+
+
+def test_ticket_replay_rejects_a_conflicting_existing_ticket(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import Ticket
+        from commerce_support.database.repository import ChatRepository, TicketRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        chat_repository = ChatRepository(database)
+        ticket_repository = TicketRepository(database)
+        context = await chat_repository.begin_turn("create a return request")
+        description = "The item arrived damaged."
+        call_id = "call-ticket-existing-conflict"
+        await _append_assistant_tool_call(
+            chat_repository,
+            context,
+            name="create_ticket",
+            args={"description": description, "ticket_type": "return"},
+            call_id=call_id,
+        )
+        created = await ticket_repository.create_once(context, call_id, description, "return")
+
+        async with database.sessions.begin() as session:
+            await session.execute(
+                update(Ticket)
+                .where(Ticket.ticket_id == created["ticket_id"])
+                .values(
+                    tool_call_id="tampered-ticket-call",
+                    description="Conflicting stored description.",
+                    ticket_type="other",
+                )
+            )
+
+        with pytest.raises(RuntimeError):
+            await ticket_repository.create_once(context, call_id, description, "return")
+
+        async with database.sessions() as session:
+            stored_ticket = await session.get(Ticket, created["ticket_id"])
+            count = await session.scalar(
+                select(func.count())
+                .select_from(Ticket)
+                .where(Ticket.conversation_id == context.conversation_id)
+            )
+        assert count == 1
+        assert stored_ticket is not None
+        assert stored_ticket.tool_call_id == "tampered-ticket-call"
+        assert stored_ticket.description == "Conflicting stored description."
+        assert stored_ticket.ticket_type == "other"
 
     loop.run_until_complete(run())
 
