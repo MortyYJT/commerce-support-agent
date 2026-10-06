@@ -305,3 +305,40 @@
 - 关键产出：447b9d3仅修租约测试，主动写入`.850000`并读取MySQL实际persisted active_until，持锁到实际过期后再释放；独立task-1-expiry-review.md判定ADDRESSED且无新问题。主助手核对运行37412670992：离线与真实MySQL任务均success。模型层a556ea4评审Approved、52项离线测试通过；8个Prompt样例已建立并静态校验，真实语义评测仍待任务6。
 - 拒绝或纠偏：修测试假设而非放松业务断言；不因原始CI失败随意重跑冒充稳定通过。模型wire测试的准确五工具名/隐藏参数断言加强建议为Minor，已记最终评审清单。
 - 翻车与返工：完成真实CI暴露的时间精度返工；本机全MySQL16 passed、52项离线通过，新CI解除任务3阻塞。进入任务4持久化聊天/SSE/取消/预算协调器。
+
+### 2026-10-06 — 任务4首组RED与环境纠偏
+
+- 用户关键原话：沿用“工具链接进现有客服聊天入口”“只做单轮调用”和Context7先查接口要求。
+- 关键产出：新test_tool_chat首轮7项目标失败，缺少ChatService仓库/执行器/注册工厂注入及prepare/stream协调流程；覆盖单/无/多调用、缺id、结果预算、commit顺序与失败。继续补成组上下文和真实MySQL流水测试后实现固定流程。
+- 拒绝或纠偏：Luna使用uv run可能自动同步未约束传递依赖，主助手要求使用.venv/bin/python与现有锁文件。Luna核对关键框架版本与锁定值一致，移除仅新生成的未跟踪uv.lock，不引入第二套锁管理。
+- 翻车与返工：目前无实现返工；环境命令纠正后继续测试先行，不扩大到页面或Docker交付代码。
+
+### Task4 真实数据库验证返工：默认预算
+- 用户关键原话：“继续”；“多轮上下文先做最简版：历史消息裁剪加 token 预算控制”。
+- 关键产出：Luna离线68 passed / 20 deselected；真实MySQL聊天流程发现context_budget_exceeded，五个工具Schema约2257 bytes、System约1496 bytes，最终阶段仍重复计入已关闭的工具定义。裁定按每次实际请求计量：selection含Schema，final不含未发送的Schema；保留4096默认与必要调用/结果，不提高预算掩盖问题。
+- 拒绝或纠偏：拒绝仅提高测试预算；增加真实默认配置的回归并提交独立评审。
+- 翻车与返工：Luna曾因额度中断，用户要求继续后恢复原任务；修正测试缺失ChatRequest导入，并继续真实数据库验证，尚未通过Task4验收。
+
+### Task4 实现测试绿灯，等待独立评审
+- 用户关键原话：“继续”；“实际写代码的时候调用gpt-6 luna max写代码，你只负责验收”。
+- 关键产出：Luna报告恢复锁定依赖后的离线69 passed / 20 deselected、真实MySQL全套20 passed、Ruff与uv pip check通过；默认4096实际工具注册表回归先红后绿，最终请求仅计算实际发送的上下文。Task4实现报告和提交正在整理，尚未独立评审通过。
+- 拒绝或纠偏：不接受首次虚拟环境的版本漂移作为最终验证；恢复全部64个精确pin，项目editable安装使用--no-deps。
+- 翻车与返工：此前uv run把langgraph 1.2.12升到1.2.13；sync恢复版本后移除本地editable包造成一个CLI子进程导入失败，恢复editable后全部20项MySQL测试通过，未修改依赖锁文件。
+
+### Task4 提交与主助手真实接口抽验
+- 用户关键原话：“继续”；“订单 1001 的物流到哪了”。
+- 关键产出：实现提交84364ed，已推codex/stage-2-tools，独立stage2_chat_review评审中；实际CI37433528322离线job成功、MySQLjob仍运行。主助手用真实DeepSeek请求临时8002服务，/ready成功，conversation→query_logistics running/succeeded→真实delta→done；数据库独立回读同一会话user/assistant/tool/assistant均completed，会话idle，调用order_id=1001，结果in_transit/estimated_days=3/Demo Express，最终答案一致并标注演示。
+- 拒绝或纠偏：8000被其他进程占用，临时抽验使用8002；没有停止未知进程，正式Docker端口仍按计划8001。
+- 翻车与返工：新增lifespan释放RED证明数据库关闭异常会漏关gateway，修复后离线70 passed、真实MySQL20 passed、socket6/6；正式Task4验收仍等独立评审，不把抽验当整章部署完成。
+
+### Task4 独立评审结论：需修复取消持久化
+- 用户关键原话：“全程走 Superpowers 流程”；“你只负责验收”。
+- 关键产出：task-4-review.md 判定 Spec不通过/Needs fixes；真实CI37433528322两job均success，但reviewer在实际socket选择阶段取消测试中给finish_turn增加真实await checkpoint，复现取消状态未落库。预算按实际selection/final分别计算获得评审认可。原Luna开始修复第1轮，新增异步取消与真实数据库回归。
+- 拒绝或纠偏：不能以CI绿灯代替取消正确性；不能使用无await的假持久化掩盖数据库操作会被取消。Context7 AnyIO官方取消文档确认需要有界shield完成异步清理并重新抛出原取消。
+- 翻车与返工：Important为取消范围内直接await结束写入，可能会话占用到租约过期；Minor为commit-before-done测试比较两份列表索引，修复同批增强时序断言。评审跨任务项沿用既有租约/配置证据，真实供应商非法JSON协议验证留后续评估。
+
+### Task4 修复复审通过与任务验收
+- 用户关键原话：“通过”；“继续”。
+- 关键产出：c9a9a22取消修复；task-4-rereview.md 两项ADDRESSED，无新Critical/Important。有界AnyIO shield覆盖结束写入与迭代器关闭；实际MySQL断连回归验证cancelled落库、释放租约、同会话重试、取消历史排除。最新真实CI37435369591两job成功，MySQL 21 passed in 5.76s；离线70 passed。主助手真实DeepSeek客户端中断后独立回读会话idle、active_turn_id=null、两行cancelled，同会话后续请求成功delta/done。
+- 拒绝或纠偏：复审另用实际安装的ChatOpenAI/LangChain/OpenAI和模拟SSE transport验证首token前/后关闭，2项通过；不把受控transport当真实供应商验证。根助手回读配置150/180秒、工具5秒/1次重试、输入4096，先前数据层条件写入与锁过期证据仍适用；畸形JSON反馈完整上游协议交Task6明确验证。
+- 翻车与返工：初次提交范围检查漏掉SDD临时report，已在c9a9a22取消Git跟踪并保留本地，未amend或改写历史。测试中直接给假provider generator加异步finalizer造成4项失败，改为生产网关wrapper加可等待关闭的真实socket测试，独立复审判定覆盖应用拥有的关闭契约。Task4现通过验收，开始Task5页面Vibe接入。

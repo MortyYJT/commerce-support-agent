@@ -138,7 +138,7 @@ assert selection_payload["max_tokens"] == settings.max_output_tokens
 
 **Interfaces:** ChatRequest(message, conversation_id=None)；ChatService(gateway, settings, repository, tool_executor).prepare(request)->TurnContext与stream(ctx)->AsyncIterator[StreamEvent]；context.build_persisted_messages(system, history_groups, current_group, tool_schemas, budget)->list[BaseMessage]。routes仅编码公开事件；app通过lifespan创建/关闭Database并注入服务，测试可注入假repo，不要求离线启动MySQL。
 
-- [ ] 写失败测试test_state_precedes_delta、test_one_tool_then_final、test_no_tool_still_streams_final、test_multiple_calls_execute_zero、test_missing_call_id_fails_safely、test_done_follows_commit、test_overbudget_result_does_not_generate、test_history_groups_trim_together。
+- [x] 写失败测试test_state_precedes_delta、test_one_tool_then_final、test_no_tool_still_streams_final、test_multiple_calls_execute_zero、test_missing_call_id_fails_safely、test_done_follows_commit、test_overbudget_result_does_not_generate、test_history_groups_trim_together。
 
 ```python
 assert events.index("tool_status") < events.index("delta")
@@ -149,12 +149,12 @@ assert "done" not in events_after_commit_failure
 assert final_calls_after_result_budget_error == 0
 ```
 
-- [ ] 写断开测试：选择阶段、工具重试期间、最终首个token前、delta后取消；断言上游/执行停止、状态cancelled、无done；后续上下文排除取消轮次。保留空/截断/异常断流回归测试，迁移到新接口而非删除断言。
-- [ ] 跑指定测试确认目标行为失败。
-- [ ] 实现prepare短事务、conversation首帧、一次选择及数量/标识校验、保存申请/结果、最终真实流。超限为每个合法申请写错误ToolMessage，零业务调用；无合法协议直接error。不得先await最终首文本再创建SSE而阻塞工具状态展示。
-- [ ] 实现整轮保守预算，工具Schema和结果计入；不能修改系统/当前轮来凑预算；最终文本成功提交后done。超时总deadline150秒，租约180秒，旧turn_id条件检查覆盖所有结束写入。
-- [ ] /ready实际检查连接和四表，缺配置/缺表为503；/health保持进程检查。非空旧history与额外字段拒绝422，未知conversation_id为404，同会话冲突409；流开始后安全error，绝不泄漏异常。
-- [ ] 真实MySQL验证完整工具流水、成功历史、并发冲突与失败最终提交；跑全离线回归及集成测试，主助手验收、即时记note后提交feat(chat)。
+- [x] 写断开测试：选择阶段、工具重试期间、最终首个token前、delta后取消；断言上游/执行停止、状态cancelled、无done；后续上下文排除取消轮次。保留空/截断/异常断流回归测试，迁移到新接口而非删除断言。
+- [x] 跑指定测试确认目标行为失败。
+- [x] 实现prepare短事务、conversation首帧、一次选择及数量/标识校验、保存申请/结果、最终真实流。超限为每个合法申请写错误ToolMessage，零业务调用；无合法协议直接error。不得先await最终首文本再创建SSE而阻塞工具状态展示。
+- [x] 实现整轮保守预算，工具Schema和结果计入；不能修改系统/当前轮来凑预算；最终文本成功提交后done。超时总deadline150秒，租约180秒，旧turn_id条件检查覆盖所有结束写入。
+- [x] /ready实际检查连接和四表，缺配置/缺表为503；/health保持进程检查。非空旧history与额外字段拒绝422，未知conversation_id为404，同会话冲突409；流开始后安全error，绝不泄漏异常。
+- [x] 真实MySQL验证完整工具流水、成功历史、并发冲突与失败最终提交；跑全离线回归及集成测试，主助手验收、即时记note后提交feat(chat)。
 
 ### Task 5：页面工具徽章与连续聊天（Vibe例外）
 
