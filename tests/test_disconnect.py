@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from types import SimpleNamespace
 from typing import Any
 
@@ -156,6 +157,28 @@ async def _read_event(lines) -> tuple[str, str]:
 
 
 def _gateway_for_upstream_stream(stream):
+    class OpenAIStyleStream:
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            chunk = await stream.__anext__()
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        delta=SimpleNamespace(
+                            content=getattr(chunk, "content", None),
+                            tool_calls=None,
+                            function_call=None,
+                        ),
+                        finish_reason=getattr(chunk, "finish_reason", None),
+                    )
+                ]
+            )
+
+        async def close(self):
+            await stream.aclose()
+
     class StubbedModelGateway(ChatOpenAIModelGateway):
         async def select_tools(self, _messages, _tools):
             return AIMessage(content="")
@@ -164,7 +187,14 @@ def _gateway_for_upstream_stream(stream):
             return None
 
     gateway = object.__new__(StubbedModelGateway)
-    gateway._model = SimpleNamespace(astream=lambda _messages: stream)
+
+    async def create_stream(**_payload):
+        return OpenAIStyleStream()
+
+    gateway._model = SimpleNamespace(
+        _get_request_payload=lambda _messages: {"messages": []},
+        async_client=SimpleNamespace(create=create_stream),
+    )
     return gateway
 
 
@@ -394,5 +424,101 @@ def test_real_disconnect_after_delta_persists_partial_as_cancelled(local_http_se
 
         await asyncio.wait_for(final_cancelled.wait(), timeout=2)
         assert repository.finished == [("partial answer", "cancelled")]
+
+    asyncio.run(verify_disconnect())
+
+
+def test_real_disconnect_after_model_delta_closes_openai_response(local_http_server):
+    async def verify_disconnect() -> None:
+        repository = SocketRepository()
+        requests: list[dict[str, Any]] = []
+
+        class BlockingByteStream(httpx.AsyncByteStream):
+            def __init__(self) -> None:
+                self.closed = asyncio.Event()
+                self.exhausted = False
+
+            async def __aiter__(self):
+                yield (
+                    b'data: {"id":"chatcmpl-final","object":"chat.completion.chunk",'
+                    b'"created":1,"model":"wire-model","choices":[{"index":0,'
+                    b'"delta":{"content":"partial answer"},"finish_reason":null}]}\n\n'
+                )
+                await asyncio.Event().wait()
+                self.exhausted = True
+
+            async def aclose(self) -> None:
+                await asyncio.sleep(0)
+                self.closed.set()
+
+        body = BlockingByteStream()
+
+        async def respond(request: httpx.Request) -> httpx.Response:
+            payload = json.loads(request.content)
+            requests.append(payload)
+            if len(requests) == 1:
+                return httpx.Response(
+                    200,
+                    json={
+                        "id": "chatcmpl-selection",
+                        "object": "chat.completion",
+                        "created": 1,
+                        "model": "wire-model",
+                        "choices": [
+                            {
+                                "index": 0,
+                                "message": {"role": "assistant", "content": ""},
+                                "finish_reason": "stop",
+                            }
+                        ],
+                    },
+                )
+            return httpx.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                stream=body,
+            )
+
+        settings = Settings(
+            _env_file=None,
+            llm_base_url="https://model.invalid/v1",
+            llm_model="wire-model",
+            llm_api_key="wire-test-key",
+        )
+        gateway = ChatOpenAIModelGateway(
+            settings,
+            transport=httpx.MockTransport(respond),
+        )
+        app = create_app(
+            settings=settings,
+            gateway=gateway,
+            repository=repository,
+        )
+
+        async with (
+            local_http_server(app) as base_url,
+            httpx.AsyncClient(timeout=5, trust_env=False) as client,
+            client.stream(
+                "POST",
+                f"{base_url}/chat/stream",
+                json={"message": "hello"},
+            ) as response,
+        ):
+            assert response.status_code == 200
+            lines = response.aiter_lines()
+            assert (await _read_event(lines))[0] == "event: conversation"
+            event_line, data_line = await _read_event(lines)
+            assert event_line == "event: delta"
+            assert data_line == 'data: {"content":"partial answer"}'
+            await response.aclose()
+
+        try:
+            await asyncio.wait_for(body.closed.wait(), timeout=2)
+        finally:
+            await gateway.aclose()
+
+        assert body.exhausted is False
+        assert repository.finished == [("partial answer", "cancelled")]
+        assert len(requests) == 2
 
     asyncio.run(verify_disconnect())

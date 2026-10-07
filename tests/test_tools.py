@@ -179,7 +179,7 @@ def test_ticket_uses_server_context_and_runtime_call_id() -> None:
     asyncio.run(run())
 
 
-def test_demo_tools_echo_input_and_mark_generated_data_as_demo() -> None:
+def test_demo_tools_echo_input_and_return_seeded_generated_fields() -> None:
     async def run() -> None:
         registry, _, _ = _build_registry()
 
@@ -193,8 +193,25 @@ def test_demo_tools_echo_input_and_mark_generated_data_as_demo() -> None:
             _tool_call("query_logistics", {"order_id": "ORDER-1001"})
         )
 
-        assert order.data["demo"] is True and order.data["order_id"] == "ORDER-1001"
-        assert product.data["demo"] is True and product.data["product_id"] == "SKU-RED-1"
-        assert logistics.data["demo"] is True and logistics.data["order_id"] == "ORDER-1001"
+        assert order.data == {
+            "demo": True,
+            "order_id": "ORDER-1001",
+            "status": "shipped",
+            "total_aud": 332.53,
+        }
+        assert product.data == {
+            "demo": True,
+            "product_id": "SKU-RED-1",
+            "name": "Travel Mug",
+            "in_stock": True,
+            "price_aud": 22.84,
+        }
+        assert logistics.data == {
+            "demo": True,
+            "order_id": "ORDER-1001",
+            "status": "out_for_delivery",
+            "estimated_days": 0,
+            "carrier": "Demo Express",
+        }
 
     asyncio.run(run())

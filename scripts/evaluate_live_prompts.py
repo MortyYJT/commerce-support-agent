@@ -386,6 +386,49 @@ def _evaluate_case(
     }
 
 
+def _apply_postage_sql_replay_checks(
+    evaluated: dict[str, Any],
+    replay: dict[str, Any] | None,
+    expected_keyword: object,
+) -> None:
+    replay = replay if isinstance(replay, dict) else None
+    query = replay.get("query") if replay is not None else None
+    statement = query.get("statement") if isinstance(query, dict) else None
+    parameters = query.get("bound_parameters") if isinstance(query, dict) else None
+    normalized_statement = (
+        " ".join(statement.lower().replace("`", "").split())
+        if isinstance(statement, str)
+        else ""
+    )
+    query_captured = (
+        normalized_statement.startswith("select ")
+        and " from faq " in f" {normalized_statement} "
+        and " like " in f" {normalized_statement} "
+        and isinstance(parameters, (list, tuple))
+    )
+    keyword_matches = (
+        isinstance(expected_keyword, str)
+        and replay is not None
+        and replay.get("keyword") == expected_keyword
+        and query_captured
+        and any(value == expected_keyword for value in parameters)
+    )
+    row_count = replay.get("row_count") if replay is not None else None
+    zero_rows = (
+        isinstance(row_count, int)
+        and not isinstance(row_count, bool)
+        and row_count == 0
+    )
+
+    evaluated["faq_sql_replay"] = replay
+    evaluated["checks"]["faq_sql_replay_query_captured"] = query_captured
+    evaluated["checks"]["faq_sql_replay_keyword_matches_expected"] = keyword_matches
+    evaluated["checks"]["faq_sql_replay_returns_zero_rows"] = zero_rows
+    evaluated["deterministic_checks_pass"] = all(
+        value is True for value in evaluated["checks"].values()
+    )
+
+
 async def _evaluate(args: argparse.Namespace) -> int:
     settings, host_database_url = _settings_and_host_database_url()
     settings = settings.model_copy(update={"database_url": SecretStr(host_database_url)})
@@ -472,8 +515,22 @@ async def _evaluate(args: argparse.Namespace) -> int:
                     if case.get("case_id") == "postage_no_match":
                         arguments = evaluated.get("actual_arguments")
                         keyword = arguments.get("keyword") if isinstance(arguments, dict) else None
-                        if isinstance(keyword, str):
-                            evaluated["faq_sql_replay"] = await _faq_sql_replay(database, keyword)
+                        expected_arguments = case.get("expected_arguments")
+                        expected_keyword = (
+                            expected_arguments.get("keyword")
+                            if isinstance(expected_arguments, dict)
+                            else None
+                        )
+                        replay = (
+                            await _faq_sql_replay(database, keyword)
+                            if isinstance(keyword, str)
+                            else None
+                        )
+                        _apply_postage_sql_replay_checks(
+                            evaluated,
+                            replay,
+                            expected_keyword,
+                        )
                     if case.get("case_id") == "create_return_ticket":
                         persisted_tickets = await _read_persisted_tickets(
                             database,
