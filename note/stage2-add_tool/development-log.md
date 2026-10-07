@@ -483,3 +483,10 @@
 ### 第8项执行裁定
 
 8. 当前章节接受工单创建、正确ID和落库证据，将一次 `open`→“处理中”的自然语言偏差记录为非阻塞质量问题；不把本次人工评估记为8/8。若裁定不当，用户可能误解工单进度，需要明确Prompt状态映射或确定性状态展示后重新评估。
+
+## 2026-10-07 finish：交付文档与 PR 收尾
+
+- 用户关键原话：“commit and push，我来审核pr”；“message要有body用-作为开头”；“本章先本机 Docker，远端 CD 留后续阶段”。
+- 关键产出：功能修复 `0065004` 与验收文档 `9141e2c` 已推送同一功能分支，PR [#3](https://github.com/MortyYJT/commerce-support-agent/pull/3) 已更新英文说明，包含准确测试数字、单轮边界、实际Docker证据、人工7/8措辞问题和私有API升级风险。演示：在项目目录运行 `docker compose up -d --build`，浏览器访问 `http://127.0.0.1:8001/`，询问物流1001、退货政策、邮费；curl命令见README。测试结果分别见 verification/results.md 与 evaluation/results.md。全部8项裁定已留存，清理仅本计划ignored SDD工作区，保留项目checkout、分支、数据库volume和恢复备份。
+- 拒绝或纠偏：没有合并main、直接push main、force-push或重做历史；不宣称远端CD、人工8/8、真实物流API或语义召回。当前文档检查点记录时PR仍Draft；最终文档tip实际CI通过后主助手将转ready并核对未合并，用户亲自合并。
+- 翻车与返工：本章返工已即时保留：Docker恢复/首个wheel失败、MySQL认证与日期精度、取消持久化、Prompt7/8、最终协议片段与真实response关闭。当前没有未解决的Critical/Important工程发现；工单措辞问题保留待后续质量改进。

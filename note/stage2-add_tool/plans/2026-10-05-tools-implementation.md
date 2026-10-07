@@ -179,8 +179,8 @@ assert final_calls_after_result_budget_error == 0
 - [x] 跑8个Prompt标注样例，特别记录“邮费”实际原词/SQL零结果/最终回答；保存脱敏证据，不记录密钥或完整供应商日志。单个真模型选错需返工Prompt并重验相关样例，不把失败改标签。
 - [x] 跑完整离线与真实MySQL集成；主助手按spec做最终后端code review，页面按浏览器验收；问题交Luna修复再验，不自动越过失败。即时记录评审结论和返工。
 - [x] 更新英文README：本机Docker命令、三场景curl、多轮conversation_id、工具演示标识、四表初始化、测试方法、接口变化与部署状态；中文验收结果在note。
-- [ ] 主助手验证完成证据后提交chore(ci)/docs(stage2)等有英文bullet body的提交，推codex/stage-2-tools并创建PR、attach；核对实际CI结果，未通过则修复。用户亲自合并，不auto-merge。
-- [ ] finish即时记note：演示命令、测试计数、CI链接、Docker本机已验证、远端CD未验证、预期漏召回。最终提供PR/结果/note链接，不以计划复述代替交付。
+- [x] 主助手验证完成证据后提交chore(ci)/docs(stage2)等有英文bullet body的提交，推codex/stage-2-tools并创建PR、attach；核对实际CI结果，未通过则修复。用户亲自合并，不auto-merge。
+- [x] finish即时记note：演示命令、测试计数、CI链接、Docker本机已验证、远端CD未验证、预期漏召回。最终提供PR/结果/note链接，不以计划复述代替交付。
 
 ## 执行与验收节奏
 
