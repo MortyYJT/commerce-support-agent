@@ -408,3 +408,78 @@
 - 关键产出：task-6-review.md Spec compliant、Approved，无Critical/Important；Docker固定摘要/白名单、Compose依赖、三CI职责、真实评估与失败留痕均符合。主助手用已完成真实Docker/SQL/逐条人工评估/实际CI解除跨diff验证项；任务6实现现验收通过，进入整分支最终评审。
 - 拒绝或纠偏：Minor为evaluate_live_prompts.py记录FAQ SQL回放row_count却未纳入自动8/8条件；本次真实零行已核对，但该自动检查缺口仍交最终评审，不抹去发现。现有missingDB/ready失败测试为Task4先红后绿证据，Task6复用而不写镜像式冗余单测。
 - 翻车与返工：此评审不要求产品返工；最终评审仍须综合跨任务行为和此前Minor，用户合并步骤保留。
+
+### 执行中裁定（按发生顺序保留）
+1. 内部tool_result仅由协调器消费，公开SSE使用白名单。原因：不泄漏原始工具载荷；若错需返工协调器边界。
+2. Luna本地提交先作为评审检查点，验收后另交过程文档。原因：review-package需要已提交diff；代价是额外文档commit。
+3. 本机Docker阻塞时提前执行任务6的真实MySQL CI前置。原因：不绕过macOS验证、不重置数据；代价是提前建Draft PR与CI配置返工，仍须补本机部署，现已验证。
+4. 任务4扩展repository保存合法ID的畸形原始调用参数。原因：旧接口只接受args dict，与错误回灌/持久化要求冲突；若错需专门repository回归与评审返工。
+5. 每次模型请求按真实payload计量：selection含schema，final不计未发送的schema。原因：重复计不存在schema会拒绝正常工具轮；若错需预算回归与独立评审返工。
+6. 演示.env/sample/Compose显式6144，Settings兜底4096不改。原因：普通中文描述4095/4096缺少实用余量，实际普通描述/多轮已复验；若错会增加保留上下文和模型输入费用，并需配置调整。该数值是主助手判断，不冒称用户指定。
+7. final流复用同一ChatOpenAI对象的payload builder与底层已配置OpenAI async client，用应用直接拥有的响应上下文和有界shield关闭。原因：严格MockTransport证明LangChain提前aclose并未等待底层HTTP响应关闭；固定LangChain工具/选择/序列化、OpenAI协议、配置与两请求限制保留。风险：依赖固定版本的private_get_request_payload，升级须重新验证wire、畸形历史反馈、取消与流关闭，不宣称公共稳定API。
+
+### 2026-10-07 — 恢复最终评审与交付
+- 用户关键原话：“继续”。
+- 关键产出：现场HEAD仍为acb21bf，只有两份主助手note修改；PR3仍draft/未合并，远端功能HEAD e064665，实际CI37441411484仍completed/success。恢复尚未完成的Astra整分支最终评审，沿用同一package；没有重复派发已完成任务。Docker当前未启动，启动现有官方应用后daemon29.6.1恢复，保留既有数据并up原Compose。
+- 拒绝或纠偏：昨日部署成功不等于今日服务仍在线，先核对后恢复；没有重跑已通过业务评估或改写历史。此前评审因usage limit中断没有结论，不冒称最终评审通过。
+- 翻车与返工：首次Docker应用启动的UI状态读取超时，但随后CLI确认daemon已运行；整分支最终评审与PR ready/最终note尚待完成。
+
+### 最终评审发现协议边界返工项
+- 用户关键原话：“目前先只做单轮限制”；“继续”。
+- 关键产出：Astra沿实际ChatOpenAI gateway与ChatService，以无密钥MockTransport焦点probe复现最终tool-call delta后文本加finish_reason=stop仍发delta/done、落completed；该阶段不应再接受工具申请，待完整最终评审列出行引用。
+- 拒绝或纠偏：先等完整发现列表，再按SDD一次Luna修复wave，不逐条重复派修；此前真实场景与CI绿不掩盖该协议边界问题，PR继续Draft。
+- 翻车与返工：最终流网关忽略tool_calls/tool_call_chunks片段，仅核对文本和结束原因；拟新增有意义回归并拒绝最终工具申请，不增加Agent循环或第二次业务调用。
+
+### 最终整分支评审结论与统一修复派发
+- 用户关键原话：“全程走 Superpowers 流程”；“实际写代码的时候调用gpt-6 luna max写代码”。
+- 关键产出：final-review.md针对4a0108f..acb21bf，Critical0/Important1/Minor3、With fixes。Important为最终流禁止工具申请的协议缺口；Minor分别为受控随机字段断言、真实wire五名称/隐藏参数断言、FAQ SQL回放未进入自动判定。主助手核对现有_stream确实忽略字段，Context7最新AIMessageChunk官方定义确认中间tool_call_chunks可先于结束原因出现；一次性派Luna修复全部四项。
+- 拒绝或纠偏：保留selection畸形参数回灌能力，修复仅针对final新工具申请；不增加请求或执行工具。工作副本主助手notes不交Lunastage；修复按有意义RED/GREEN、全套回归、一次范围复审，技术栈/依赖/预算/页面不变。
+- 翻车与返工：此前真实DeepSeek畸形参数probe验证的是合法历史反馈，不覆盖final新工具申请；不以它替代本次边界回归。最终完成仍等修复/复审/最新运行与CI。
+
+### 最终评审逐项暂不判断事项的主助手处理
+| 评审列明事项 | 主助手核对与处理 |
+| --- | --- |
+| 页面外观、徽章、刷新、取消 | 按用户Vibe例外，以已完成真实浏览器验收为准，不另设代码评审门槛。 |
+| 今日Docker/具体镜像 | 现有官方应用已启动，29.6.1、up/init0及8001/ready已核对；修复后再重建验对应源码。 |
+| 历史CI/provider/browser/SQL证据 | 主助手已经实际获取CI日志、执行浏览器/curl并独立回读SQL，既有证据成立，修复后CI另核对。 |
+| 八样例之外所有模型回答 | 只报告八项及指定真实体验通过，不宣称模型普遍正确；确定性协议约束仍修复。 |
+| 远端CD、鉴权与生产运维 | 遵循本章本机演示/远端后续范围，不宣称生产上线或身份验证。 |
+| 真实业务接口与随机跨调用一致性 | 用户明确三查询随机演示，不接真实接口/建表；不宣称随机数据一致或公司实时数据。 |
+| FAQ语义/同义词召回 | 用户明确邮费漏召回留下一步，本章原词LIKE及实际零结果保留。 |
+| 刷新恢复旧聊天、客户端历史 | 按已批准服务端历史与刷新新会话契约，旧非空history拒绝。 |
+| 迁移、销毁、HA、并行初始化 | 按已批准显式串行开发初始化、幂等种子与四表；本次真实重复初始化已验证，不添加生产迁移/销毁。 |
+| 不同轮/HTTP重试/新会话的业务Exactly-once | 当前幂等身份是conversation/turn/call；已提交后同工具重试号码稳定，不宣称跨轮业务意图去重。 |
+| 所有长度必成功、取消撤销已提交副作用 | 按已批准有界结果/预算错误及保留已提交工单契约，失败明确而非伪done。 |
+| 精确tokenizer/合并输入输出窗口预算 | 按本章保守UTF-8输入估算，6144裁定与输出配置分开，不宣称精确token数。 |
+| 已推commit body/既有历史清理重做 | 保留已推历史；格式问题记录，未来commit使用真实换行，不擅自amend/force。 |
+| 全依赖安全审计与更多平台矩阵 | 本次不是依赖安全专项审计；已有pin、amd64 CI/arm64本机证据，不宣称额外平台验证。 |
+| 最终PR、后续note、用户合并 | 主助手负责修复后ready/最终证据与note；用户亲自审核合并，未自动合并。 |
+
+### 最终修复波次 RED/GREEN 进展
+- 用户关键原话：“其余步骤照走”；“只做单轮调用”。
+- 关键产出：Luna报告真实gateway/ChatService生产路径回归对parsed/partial最终工具片段先RED，最小model.py guard后GREEN；断言failed持久化、无done、HTTPX真实流异步关闭、零业务执行且仅selection+final请求。受控演示字段和真实wire五名称/公开参数断言通过；SQL回放不一致回归4 RED后4 GREEN。
+- 拒绝或纠偏：没有改Prompt/预算/技术栈或让模型再选工具；即将真实邮费针对性验证只证明更新评估脚本/DB，运行容器尚无新guard，二者分开标记。
+- 翻车与返工：当前修复消除了评审复现边界与评估假通过，但最终全套离线/MySQL/Ruff、范围复审、新镜像和实际CI尚未完成，不提前标finish。
+
+### 最终修复发现上游关闭边界并裁定最小适配
+- 用户关键原话：“模型接入直连上游，应用侧统一说 OpenAI 协议”；“技术选型定死”。
+- 关键产出：更严格TrackingByteStream证明LangChain迭代器提前aclose返回后响应仍未关闭，原先只验wrapper关闭的证据不够。主助手暂缓扩展、核对approved spec/plan未指定必须调用astream方法，Context7最新OpenAI/LC官方文档及已装LC1.6.7/core1.6.6/OpenAI3.24.0接口；同一已配置client沿LC payloadbuilder发最终请求、直接拥有响应上下文可保证关闭，记录第7裁定与private API升级风险。
+- 拒绝或纠偏：不新建模型/client、不自制序列化、不换依赖/技术栈；SDK单响应close与整个client.close不同，取消路径仍需bounded shield。保留selection LangChain @tool与bind_tools；全部wire、raw invalid历史反馈、部分文本后socket关闭回归须保持。
+- 翻车与返工：Luna当前离线75 passed、2条断连测试因旧astream测试缝失败，Ruff3处待修；同wave适配新实际边界，不删除关闭断言或把旧结果称最终通过。最终部署/评审/CI继续等待。
+## 2026-10-07 最终统一修复检查点
+
+- 用户关键原话：“继续”；代码仍交由 gpt-6-luna max，主助手独立验收。
+- 关键产出：`0065004` 一次修复整仓评审的四项发现。最终流原始工具片段现在安全失败；补齐随机字段、公共 wire schema 和 FAQ SQL 回放判定。片段回归 2 RED→GREEN，真实 response 关闭 1 RED→GREEN，FAQ 评估 4 RED→GREEN。离线 78、真实 MySQL 21 通过，最终收紧 SQL bound 后受影响测试 23 通过，Ruff/diff check 通过。唯一 scoped re-review 已派发；主助手开始推送与重建 Docker。
+- 拒绝或纠偏：没有新增第二修复波、模型请求或工具循环；没有把旧镜像上的“邮费”专项 1/1 作为新 gateway 部署证据。复核与新镜像完整八例仍待完成。
+- 翻车与返工：真实 loopback 测试曾出现 2 秒内 response body 未关闭；已用有界取消保护直接关闭同客户端的 OpenAI response。私有 `_get_request_payload` 及绕过 astream callback/conversion 层的升级风险保留，需要 wire、畸形历史和断连回归作为升级门槛。
+
+## 2026-10-07 最终范围复核与新镜像验收
+
+- 用户关键原话：“完结交付：功能演示命令、测试结果、notes 路径”；“由我亲自合并”。
+- 关键产出：唯一 scoped re-review 逐项确认 I1/M1/M2/M3 ADDRESSED、无新增 Critical/Important。`0065004` 实际 CI [37578680757](https://github.com/MortyYJT/commerce-support-agent/actions/runs/37578680757) 三任务 success，日志为离线 78 passed/21 deselected、MySQL 21 passed，Docker build success。主助手重建启动新镜像 `sha256:8bcddc7d3000e5b1cbfdeecd74579ce53c1acc7e011ba09d12b44f3b58737e06`，app/MySQL healthy、init0、ready，Python3.11.17/UID10001/budget6144/排除项核对通过。浏览器物流1001→“这个订单金额是多少”保留1001；独立SQL八条 completed、配对call、idle/无租约，金额139.72AUD与答复一致。截图保存在仓库外 `stage2-final-chat.jpg`。
+- 拒绝或纠偏：新完整八例 deterministic 8/8，但不能标成人工质量全通过：工单 `TK-DD9F9E2735CF3AA5675C` 实际 `return/open`，模型写“处理中”。严格状态一致性人工审阅为7/8；创建结果与工单号正确。作为非阻塞表述偏差保留，后续需明确状态映射；不偷偷重跑挑选结果或新增第二修复波。
+- 翻车与返工：主助手独立SQL脚本首次错用 messages.status 与 Database.dispose，只读检查失败；查当前源码后改为 turn_status/aclose，SQL成功。不是应用schema或运行失败。远端CD未执行；PR尚待文档收尾与ready。
+
+### 第8项执行裁定
+
+8. 当前章节接受工单创建、正确ID和落库证据，将一次 `open`→“处理中”的自然语言偏差记录为非阻塞质量问题；不把本次人工评估记为8/8。若裁定不当，用户可能误解工单进度，需要明确Prompt状态映射或确定性状态展示后重新评估。

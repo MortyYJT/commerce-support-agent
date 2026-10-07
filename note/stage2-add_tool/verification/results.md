@@ -21,7 +21,7 @@
 | --- | --- | --- |
 | Python 基础镜像和平台 | 已核对 | 根助手验证官方 OCI index：`python:3.11.17-slim-bookworm@sha256:2333bd330d12de02514770b3585cad313644316047cdee24a7acfdece6de6efb`，支持 `linux/amd64` 与 `linux/arm64/v8`；临时容器报告 Python 3.11.17。 |
 | 首次镜像构建 | 失败，已修正 | 依赖安装成功后，pip 拒绝了被改名为 `/tmp/commerce-support-agent.whl` 的 wheel，报错为不是有效 wheel filename。Dockerfile 现在保留合法的 `commerce_support_agent-0.1.0-py3-none-any.whl` 名称；未改依赖或基础镜像 pin。 |
-| 应用镜像重建 | 通过 | 根助手执行 `docker compose build` 成功。实际容器所用本地 image index digest 为 `sha256:765c95afa2d28c5d814a68ab9d9ee97b1313f377014592da00b34b8c5ce37bf4`。 |
+| 应用镜像重建 | 通过 | 根助手执行 `docker compose build` 成功。首次成功镜像为 `sha256:765c95afa2d28c5d814a68ab9d9ee97b1313f377014592da00b34b8c5ce37bf4`；最终短 Prompt 重建后 app/init 使用 `sha256:3b04c5aee9567418540f86b0cbf25f38a84e35de4b2feb400b2cd2023087a992`，平台 linux/arm64。 |
 | Compose 启动 | 通过 | 根助手执行 `docker compose up -d` 后，MySQL `8.4.11` healthy，`init` 退出码 0，app healthy。 |
 | `/ready` 和容器配置 | 通过 | `http://127.0.0.1:8001/ready` 返回 `{"status":"ready"}`。容器 Python 3.11.17、UID 10001，`INPUT_TOKEN_BUDGET=6144`。 |
 | build context 与镜像排除项 | 通过 | build context 为 145.05 kB；`/app` 内无 `.env`、`.git`、`note`、`.venv` 或 `.superpowers`。Docker 输出另有普通 root pip 与 adduser home/UID 警告；未影响构建和容器启动。 |
@@ -38,6 +38,10 @@
 - 容量复测：之前一条 26 汉字左右的售后描述以 4095/4096 几乎顶满估算预算。Compose demo 配置 6144 后，根助手报告普通较长售后描述通过。该值是字节估算容量，不是模型 tokenizer token 数；`Settings` 原 4096 fallback、Prompt/schema 和超限错误行为保持。
 
 ## 运行状态边界
+
+功能提交 e064665 的实际 GitHub CI [37441411484](https://github.com/MortyYJT/commerce-support-agent/actions/runs/37441411484) 三任务均 success：offline 日志 71 passed、21 deselected in 2.40s，mysql-integration 日志 21 passed in 6.43s，docker-build 成功构建固定镜像。构建 CI 未启动或发布远端应用。
+
+主助手还以实际 curl -N 请求最终 Docker8001 的三个指定场景：均先发送 conversation/工具状态，再多段 delta，最后 done。独立数据库回读每会话四条 completed、call id 匹配、最终文本一致、idle/无租约。该轮物流随机派送中/2天/Demo Post；退货原文子串“退货”命中30天；邮费原词零结果。各次运行与上面的浏览器/评估数据分别记录。
 
 本地镜像构建、Compose 依赖顺序、四表真实 DB readiness、离线与 MySQL integration 测试、八个标注案例及其人工审阅、真实 malformed-feedback provider wire probe 和上述指定浏览器场景均有证据。`/health` 只报告进程存活，`/ready` 检查实际数据库连接和四张必需表，不测试模型 provider。没有执行远端部署或 CD。
 
@@ -62,3 +66,13 @@ integration pytest 已使用 `.env` 配置的本地专用测试库运行通过�
 TEST_DATABASE_URL='mysql+asyncmy://commerce_support:<url-safe-password>@127.0.0.1:3307/commerce_support_test_task1' \
   .venv/bin/python -m pytest tests/integration -m integration -q
 ~~~
+
+## 2026-10-07 最终修复后的证据
+
+`0065004` 四项整仓发现经唯一范围复核全部 addressed，无新增 Critical/Important。真实 gateway 的提前/晚到工具片段回归2 RED→GREEN；真实 loopback partial delta 后取消，底层HTTP响应在client shutdown前关闭且partial保存cancelled，1 RED→GREEN。评估回放4 RED→GREEN；最后受影响测试23通过。配置客户端保持，最终流直接复用LangChain私有 `_get_request_payload` 与 async_client，存在私有API升级及callback/conversion层绕过风险，wire/畸形历史/关闭测试必须作为升级门槛。
+
+实际CI [37578680757](https://github.com/MortyYJT/commerce-support-agent/actions/runs/37578680757) 三任务success：offline78 passed/21 deselected in3.05s、mysql21 passed in6.40s、docker-build成功。Root新镜像 `sha256:8bcddc7d3000e5b1cbfdeecd74579ce53c1acc7e011ba09d12b44f3b58737e06` 构建和Compose启动exit0，MySQL/app healthy、init0、ready；Python3.11.17、UID10001、budget6144和镜像排除项通过。
+
+浏览器新镜像物流1001返回派送中/1天/Demo Post；追问“这个订单金额是多少”正确查询1001返回139.72AUD/shipped。独立SQL conversation `dd7f3a68-71f6-4f09-99ca-1ed5b3ec62ac` 八条completed、call id配对、文本与结果一致、idle/无租约。真实八例结构判定8/8，严格人工状态一致性7/8：工单open被回复成处理中，已知措辞偏差见evaluation/results.md。远端CD仍未执行。
+
+新镜像上的实际 `curl -N` 退货政策请求成功：conversation→running/succeeded工具状态→47段delta→done，回答30天政策；conversation `5f1c7578-bc27-4c84-9166-4409a4c03c4a`。这证明最终响应仍为流式而不是整段缓冲。

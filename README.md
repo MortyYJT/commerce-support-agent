@@ -8,6 +8,10 @@ The application provides `POST /chat/stream`, `GET /health`, and `GET /ready`. O
 
 These checks cover the local Compose runtime, real-model requests, selected browser flows, and persisted database state. The owner also reviewed all eight final answers alongside their actual tool results in the saved evaluation output. The evaluator's `manual_response_review_required` field remains true because the script itself only checks deterministic assertions. `GET /health` reports process liveness; `GET /ready` checks a real database connection and confirms that the four required tables exist, but neither endpoint tests the model provider. Remote deployment and CD have not been verified.
 
+On 2026-10-07, the final-stream protocol fix passed 78 offline tests, 21 real MySQL tests, and all three CI jobs. The rebuilt local image passed eight deterministic evaluation cases and browser multi-turn checks. Strict manual answer review passed seven of eight cases: one correctly created `open` ticket was described as in progress. This wording discrepancy remains a known answer-quality limitation; the ticket ID and stored result were correct.
+
+Final streaming rejects unexpected tool-call fragments and closes the provider response with bounded cancellation protection. It reuses the configured ChatOpenAI client and its private `_get_request_payload` builder, bypassing LangChain's streaming callback/conversion layer. Dependency upgrades must revalidate outgoing payloads, malformed tool history, and response closure.
+
 ## Local Docker setup
 
 Docker Compose starts MySQL, runs the repeatable database initializer, and then starts the API. MySQL data uses the named `mysql_data` volume. The API is exposed only on `127.0.0.1:8001`; MySQL is exposed only on `127.0.0.1:3307`.

@@ -36,3 +36,9 @@
 ~~~
 
 Prompt 调整后也可用 `--case-id <case-id>` 聚焦重测，但接受前需重跑完整八项。脚本仅在显式标记的 `tool_failure` 案例中注入 fixture 错误。确定性检查通过不替代人工审阅答复质量。
+
+## 2026-10-07 修复后完整八例
+
+主助手在 `0065004` 新 Docker 镜像上重跑完整八例，exit0，deterministic 8/8；邮费的 SQL 回放捕获、精确 bound keyword 和零行现在均纳入通过条件。失败案例仍明确是 live-model failure injection。
+
+主助手逐一比对全部 final_answer 与 actual_tool_result：物流为 label_created/3天/Demo Post且明确demo；退货政策30天；邮费原词not_found/[]且回放0；问候无工具；缺订单号澄清；多诉求要求优先级；注入故障没有虚报物流；退货工单创建且ID与DB一致。严格人工状态一致性为 **7/8**：工单 `TK-DD9F9E2735CF3AA5675C` 是 return/open，最终答复却写“处理中”。这处措辞偏差保留为已知质量问题；不是创建失败，不能声称人工审阅全通过，也没有改标签或重跑挑选结果。此前2026-10-06人工通过记录属于此前独立运行。
