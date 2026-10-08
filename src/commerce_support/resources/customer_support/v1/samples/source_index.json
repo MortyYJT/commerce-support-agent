@@ -1,0 +1,74 @@
+[
+  {
+    "source_path": "tests/data/eval_ch04.jsonl",
+    "source_revision": "50f20d148589c9fc0659c1f7d2bb12054fee6fa1",
+    "source_sha256": "8029ec710a3275fa772748dd23d65dbf26ad7cb3c45958dfe8855cb982465d44",
+    "archived_path": "legacy/original/samples/eval_ch04.jsonl",
+    "reviewed_path": "samples/rag_reviewed.jsonl",
+    "source_bytes": 64687
+  },
+  {
+    "source_path": "tests/data/extract_samples.json",
+    "source_revision": "50f20d148589c9fc0659c1f7d2bb12054fee6fa1",
+    "source_sha256": "1afdcd5f9d23c47c431eb7606a21b996b61f4758c041b0643f118560562f06ed",
+    "archived_path": "legacy/original/samples/extract_samples.json",
+    "reviewed_path": "samples/extract_reviewed.json",
+    "source_bytes": 847
+  },
+  {
+    "source_path": "tests/data/query_rewrite_samples.jsonl",
+    "source_revision": "50f20d148589c9fc0659c1f7d2bb12054fee6fa1",
+    "source_sha256": "8efd87170dee339c69591869a670696a99a8659a203f8e0103b8757dc115ee4c",
+    "archived_path": "legacy/original/samples/query_rewrite_samples.jsonl",
+    "reviewed_path": "samples/rewrite_reviewed.jsonl",
+    "source_bytes": 423
+  },
+  {
+    "source_path": "tests/data/retrieval_samples.json",
+    "source_revision": "50f20d148589c9fc0659c1f7d2bb12054fee6fa1",
+    "source_sha256": "c9db1047da1ed43aaf903ef98f6c52fd42b75641ab498e73e5d50b1a2d871546",
+    "archived_path": "legacy/original/samples/retrieval_samples.json",
+    "reviewed_path": "samples/retrieval_reviewed.json",
+    "source_bytes": 356
+  },
+  {
+    "source_path": "tests/data/flywheel_samples.json",
+    "source_revision": "50f20d148589c9fc0659c1f7d2bb12054fee6fa1",
+    "source_sha256": "8399c6139bcaa71f63363dd97568d29efd2a6af1eed30cd5191c240bf7e9e445",
+    "archived_path": "legacy/original/samples/flywheel_samples.json",
+    "reviewed_path": "samples/flywheel_reviewed.json",
+    "source_bytes": 2371
+  },
+  {
+    "source_path": "tests/data/mining_samples.json",
+    "source_revision": "50f20d148589c9fc0659c1f7d2bb12054fee6fa1",
+    "source_sha256": "6ce9630a78e1d18a128bc35fc34c4d7db0d57ee9418957bd5a13d43c1633c675",
+    "archived_path": "legacy/original/samples/mining_samples.json",
+    "reviewed_path": "samples/mining_reviewed.json",
+    "source_bytes": 360
+  },
+  {
+    "source_path": "scripts/ch10/golden_samples.jsonl",
+    "source_revision": "50f20d148589c9fc0659c1f7d2bb12054fee6fa1",
+    "source_sha256": "dcdc4b3f6ac1654118237a978880ca5d69fc5ac615f6b89b7f1d462b6ac2ea31",
+    "archived_path": "legacy/original/samples/golden_samples.jsonl",
+    "reviewed_path": "samples/classification_reviewed.jsonl",
+    "source_bytes": 2099
+  },
+  {
+    "source_path": "scripts/ch10/supplement_sizefit.jsonl",
+    "source_revision": "50f20d148589c9fc0659c1f7d2bb12054fee6fa1",
+    "source_sha256": "b1acf4b7d0d5972e5db2ef99f1d1cf6f0e220cf5bb3ab0a9ddfdc22de03a3fe1",
+    "archived_path": "legacy/original/samples/supplement_sizefit.jsonl",
+    "reviewed_path": "samples/classification_reviewed.jsonl",
+    "source_bytes": 2299
+  },
+  {
+    "source_path": "app/core/taxonomy.py",
+    "source_revision": "50f20d148589c9fc0659c1f7d2bb12054fee6fa1",
+    "source_sha256": "92f5d83af4ba94474e67d8a52c8c986d798acd4f560c2b42ebb5ce3ed2326261",
+    "archived_path": "legacy/original/taxonomy_source.txt",
+    "reviewed_path": "taxonomy.json",
+    "source_bytes": 4150
+  }
+]

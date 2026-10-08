@@ -1,0 +1,55 @@
+[
+  {
+    "sample_id": "M01",
+    "source_annotation": {
+      "conversation": "user: 你们运费怎么算啊\nassistant: 单笔订单满99元包邮,未满收取10元运费,偏远地区另计。",
+      "expect_question_contains": "运费"
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "对话明确重复稳定的99元包邮与未满10元运费，可提炼为运费FAQ；原话只说偏远地区另计，12元是规范知识补充，不是从对话中抽取。",
+      "extracted_from_conversation_points": [
+        "满99元包邮",
+        "未满收取10元运费",
+        "偏远地区另计"
+      ],
+      "canonical_enrichment": [
+        "偏远地区加收12元附加运费且不参与包邮"
+      ],
+      "current_canonical_answer": "单笔实付满99元包邮，未满收取10元基础运费；偏远地区加收12元附加运费，该附加运费不参与包邮。",
+      "canonical_enrichment_evidence_refs": [
+        "billing-shipping::运费与包邮#e1"
+      ]
+    },
+    "evidence": "user: 你们运费怎么算啊\nassistant: 单笔订单满99元包邮,未满收取10元运费,偏远地区另计。",
+    "sources": [
+      {
+        "section_id": "billing-shipping::运费与包邮",
+        "evidence": [
+          {
+            "id": "billing-shipping::运费与包邮#e1",
+            "text": "单笔实付满 99 元包邮,未满收取 10 元基础运费。\n偏远地区(新疆、西藏、内蒙古部分区域)加收 12 元附加运费,该附加运费不参与包邮,\n需单独支付。邮费即运费,按本条规则收取。偏远地区的配送时效在正常时效基础上顺延 2 至 4 天。\n港澳台及海外暂不支持配送,下单前请确认收货地址在可配送范围内。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sample_id": "M02",
+    "source_annotation": {
+      "conversation": "user: 我的订单MH123到哪了\nassistant: 您的包裹在广州分拨中心,预计明天送达。",
+      "expect_empty": true
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "not_mined",
+      "reason": "具体订单物流位置和预计送达时间是会变化的个案状态，应在订单系统查询，不沉淀为静态FAQ。",
+      "expected_empty": true,
+      "unknown_parts": [
+        "该订单的实时物流信息需查询订单系统。"
+      ]
+    },
+    "evidence": "user: 我的订单MH123到哪了\nassistant: 您的包裹在广州分拨中心,预计明天送达。"
+  }
+]

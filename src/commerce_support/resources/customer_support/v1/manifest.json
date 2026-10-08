@@ -1,0 +1,149 @@
+{
+  "resource_version": "customer-support/v1",
+  "source_snapshot": {
+    "revision": "50f20d148589c9fc0659c1f7d2bb12054fee6fa1",
+    "description": "Legacy repository commit; source is read-only and archived byte-for-byte."
+  },
+  "policy": {
+    "currency": "CNY",
+    "no_reason_return_days": 7,
+    "no_reason_return_day_count_from": "receipt",
+    "free_shipping_threshold_cny": 99,
+    "standard_base_shipping_cny": 10,
+    "remote_area_surcharge_cny": 12,
+    "remote_surcharge_waived_by_free_shipping": false,
+    "silver_discount": "9折",
+    "gold_discount": "95折",
+    "earned_points_per_paid_cny": 1,
+    "redemption_points_per_cny": 100
+  },
+  "source_files": [
+    {
+      "source_path": "data/kb/after-sales-manual.md",
+      "source_sha256": "c30d2bb70d3808618ac982695fe9bae93b18118cb99cde1f0ef65993231b7610",
+      "archived_path": "legacy/original/knowledge/after-sales-manual.md",
+      "normalized_path": "knowledge/after-sales-manual.md",
+      "revision_reasons": [
+        "Limit the app setup instruction to models whose specifications explicitly list app connectivity, avoiding conflict with MH-LP50 and MH-FD10."
+      ]
+    },
+    {
+      "source_path": "data/kb/billing-shipping.md",
+      "source_sha256": "b9d106564bae2bc7778d7f5d72da0fb9bd18b21299ed77415f937b06a3778570",
+      "archived_path": "legacy/original/knowledge/billing-shipping.md",
+      "normalized_path": "knowledge/billing-shipping.md",
+      "revision_reasons": [
+        "Resolve the 6-versus-10 fee conflict to the user-approved 10 CNY base fee; retain the 99 CNY threshold and 12 CNY remote surcharge, which is not waived by free shipping.",
+        "State that postage is the same policy term as shipping so an exact original-word FAQ query can retrieve this rule."
+      ]
+    },
+    {
+      "source_path": "data/kb/member-benefits.md",
+      "source_sha256": "c18593b7f2641bc6c4f5dcfb169d21fe7b12402fab0f18534b6679ca7019cf50",
+      "archived_path": "legacy/original/knowledge/member-benefits.md",
+      "normalized_path": "knowledge/member-benefits.md",
+      "revision_reasons": [
+        "Update the fee redemption example from 600 points for 6 CNY to 1000 points for the approved 10 CNY base fee.",
+        "Keep the source's silver-card 9折 and gold-card 95折 statements unchanged."
+      ]
+    },
+    {
+      "source_path": "data/kb/product-faq.md",
+      "source_sha256": "dbfaaa26e000d875643614715bc0a18c8b5806919db88dcafc8ac16bc47389d3",
+      "archived_path": "legacy/original/knowledge/product-faq.md",
+      "normalized_path": "knowledge/product-faq.md",
+      "revision_reasons": [
+        "Align the shipping summary with the approved 99/10/12 CNY policy and explicitly state the postage term used by FAQ matching.",
+        "Make the electronic invoice timing explicitly start after approval; paper dispatch and actual delivery remain distinct.",
+        "Carry the receipt-based seven-day clock into the customer-facing return FAQ, so standalone SQL lookup does not depend on uncited context."
+      ]
+    },
+    {
+      "source_path": "data/kb/product-specs.md",
+      "source_sha256": "21c77a33b26d95264f7eb37509a521c2c37d3ebca0d3b9b85c1e83d353eced92",
+      "archived_path": "legacy/original/knowledge/product-specs.md",
+      "normalized_path": "knowledge/product-specs.md",
+      "revision_reasons": []
+    },
+    {
+      "source_path": "data/kb/returns-policy.md",
+      "source_sha256": "fd9543748df085444df5ffddec2191500aa26ba7260038c02c177f954d11870f",
+      "archived_path": "legacy/original/knowledge/returns-policy.md",
+      "normalized_path": "knowledge/returns-policy.md",
+      "revision_reasons": []
+    }
+  ],
+  "revision_reasons": {
+    "after-sales-manual.md": [
+      "Limit the app setup instruction to models whose specifications explicitly list app connectivity, avoiding conflict with MH-LP50 and MH-FD10."
+    ],
+    "billing-shipping.md": [
+      "Resolve the 6-versus-10 fee conflict to the user-approved 10 CNY base fee; retain the 99 CNY threshold and 12 CNY remote surcharge, which is not waived by free shipping.",
+      "State that postage is the same policy term as shipping so an exact original-word FAQ query can retrieve this rule."
+    ],
+    "member-benefits.md": [
+      "Update the fee redemption example from 600 points for 6 CNY to 1000 points for the approved 10 CNY base fee.",
+      "Keep the source's silver-card 9折 and gold-card 95折 statements unchanged."
+    ],
+    "product-faq.md": [
+      "Align the shipping summary with the approved 99/10/12 CNY policy and explicitly state the postage term used by FAQ matching.",
+      "Make the electronic invoice timing explicitly start after approval; paper dispatch and actual delivery remain distinct.",
+      "Carry the receipt-based seven-day clock into the customer-facing return FAQ, so standalone SQL lookup does not depend on uncited context."
+    ]
+  },
+  "provenance_notes": [
+    "Legacy scripts/ch10 files in the source snapshot carried a public-account attribution to 小林coding; preserve that provenance and do not claim authorship.",
+    "No old RAG/Milvus/classifier runtime, model artifact, dependency, or historical result is part of this package."
+  ],
+  "counts": {
+    "knowledge_documents": 6,
+    "heading_nodes_h2_h3": 52,
+    "knowledge_sections": 51,
+    "faq_sections": 50,
+    "rag_samples": 300,
+    "classification_samples": 64,
+    "taxonomy_classes": 17,
+    "auxiliary_source_groups": 8,
+    "sample_and_taxonomy_sources": 9,
+    "boundary_cases": 17,
+    "managed_faq_rows": 51
+  },
+  "resource_files": {
+    "README.md": "9a0177dde2e3e61b43118e936785edbcffdbee1c4727a9cd064f0b5a922fc1e7",
+    "faq_aliases.json": "5890c6e2363d45e0b85351525731baaa5753bd73e124f8163f112a21aee9c19b",
+    "faq_seed_layout.json": "fc6a48f094193135a9ecefd61ea6ae88c35bb2d1c7555f82ac596be200d044fe",
+    "knowledge/after-sales-manual.md": "2fb60cad5431f31391fa36c935a04df3af37c73b3d094fce8f8d613ead1b1e9f",
+    "knowledge/billing-shipping.md": "e94fa7e9298c8dbaaedc451660898e3650c8e340d999e4fe53aeae8df3236f26",
+    "knowledge/member-benefits.md": "7efbff8511f414b7d5b60b07160e7e8f5b92f5123eac6d1eb50483e3eb7399fd",
+    "knowledge/product-faq.md": "5026be3032e21e11a0c56cdf857c3e80c58ce15e8d7e8ee8569b1f2eb355eacd",
+    "knowledge/product-specs.md": "21c77a33b26d95264f7eb37509a521c2c37d3ebca0d3b9b85c1e83d353eced92",
+    "knowledge/returns-policy.md": "fd9543748df085444df5ffddec2191500aa26ba7260038c02c177f954d11870f",
+    "legacy/original/knowledge/after-sales-manual.md": "c30d2bb70d3808618ac982695fe9bae93b18118cb99cde1f0ef65993231b7610",
+    "legacy/original/knowledge/billing-shipping.md": "b9d106564bae2bc7778d7f5d72da0fb9bd18b21299ed77415f937b06a3778570",
+    "legacy/original/knowledge/member-benefits.md": "c18593b7f2641bc6c4f5dcfb169d21fe7b12402fab0f18534b6679ca7019cf50",
+    "legacy/original/knowledge/product-faq.md": "dbfaaa26e000d875643614715bc0a18c8b5806919db88dcafc8ac16bc47389d3",
+    "legacy/original/knowledge/product-specs.md": "21c77a33b26d95264f7eb37509a521c2c37d3ebca0d3b9b85c1e83d353eced92",
+    "legacy/original/knowledge/returns-policy.md": "fd9543748df085444df5ffddec2191500aa26ba7260038c02c177f954d11870f",
+    "legacy/original/samples/eval_ch04.jsonl": "8029ec710a3275fa772748dd23d65dbf26ad7cb3c45958dfe8855cb982465d44",
+    "legacy/original/samples/extract_samples.json": "1afdcd5f9d23c47c431eb7606a21b996b61f4758c041b0643f118560562f06ed",
+    "legacy/original/samples/flywheel_samples.json": "8399c6139bcaa71f63363dd97568d29efd2a6af1eed30cd5191c240bf7e9e445",
+    "legacy/original/samples/golden_samples.jsonl": "dcdc4b3f6ac1654118237a978880ca5d69fc5ac615f6b89b7f1d462b6ac2ea31",
+    "legacy/original/samples/mining_samples.json": "6ce9630a78e1d18a128bc35fc34c4d7db0d57ee9418957bd5a13d43c1633c675",
+    "legacy/original/samples/query_rewrite_samples.jsonl": "8efd87170dee339c69591869a670696a99a8659a203f8e0103b8757dc115ee4c",
+    "legacy/original/samples/retrieval_samples.json": "c9db1047da1ed43aaf903ef98f6c52fd42b75641ab498e73e5d50b1a2d871546",
+    "legacy/original/samples/supplement_sizefit.jsonl": "b1acf4b7d0d5972e5db2ef99f1d1cf6f0e220cf5bb3ab0a9ddfdc22de03a3fe1",
+    "legacy/original/taxonomy_source.txt": "92f5d83af4ba94474e67d8a52c8c986d798acd4f560c2b42ebb5ce3ed2326261",
+    "sample_review_summary.json": "04f2c125bcc503cb4e653fcedc0b9d79285ca183c2e5edb8b3859b3b30abf4d8",
+    "samples/boundary_cases.json": "04906e772f3d5222c6faaccaf058d7dd8e5364324bc8e28e580cd23f701a559a",
+    "samples/classification_reviewed.jsonl": "078bd4d113784b2ae9ac41de57c2bc32d2e1d68199e6d1dd62885266e141b68b",
+    "samples/extract_reviewed.json": "7dc19422c5e6cea52d12a91c5e6108ed0ef430148ae9aeda37b117190487ab5f",
+    "samples/flywheel_reviewed.json": "6d56ef8ec89e3660ebcf851cc688f56fb55df48777c0d03991ee032875e15369",
+    "samples/mining_reviewed.json": "373667c5e155c9f09a185e922b08cf8ddfb81626c92b9652bc063d1865e2d56c",
+    "samples/rag_reviewed.jsonl": "ccb9e04922537c11b624a996a0002fdb968f342954cfdac834d1f9657bf20909",
+    "samples/retrieval_reviewed.json": "3542f1b827e7fd25d5467ed1205368ec6ecbc9418ebf327dc16c30ac126fe554",
+    "samples/rewrite_reviewed.jsonl": "46fe5f908a61c28cb3910d6764e37403fcb633146ca8cbda04c1cf8173f4ffcb",
+    "samples/source_index.json": "acce6dcb6b94c5bca58495cd6e6c73b33d8ef6dab1f7d4c5c03dc2a141471fdc",
+    "sections.json": "5cb50c0bc68bd8d45e58b132f5f94bbeb6bbd70a78f5491b6d45a3e3c7b08eb4",
+    "taxonomy.json": "5a756486cfd0439c600e1e546b180a2dd5e6a9c962c9f34f4a322f909950cd36"
+  }
+}

@@ -37,22 +37,13 @@ class HistoryMessage(StrictModel):
 
 class ChatRequest(StrictModel):
     message: BoundedText
-    history: list[HistoryMessage] = Field(
-        default_factory=list,
-        max_length=MAX_HISTORY_MESSAGES,
-    )
+    conversation_id: Annotated[str, StringConstraints(min_length=1, max_length=36)] | None = None
+    history: list[HistoryMessage] = Field(default_factory=list, max_length=MAX_HISTORY_MESSAGES)
 
     @model_validator(mode="after")
-    def validate_complete_history_turns(self) -> Self:
-        if len(self.history) % 2:
-            raise ValueError("history must contain complete user/assistant pairs")
-
-        for index in range(0, len(self.history), 2):
-            user_message = self.history[index]
-            assistant_message = self.history[index + 1]
-            if user_message.role != "user" or assistant_message.role != "assistant":
-                raise ValueError("history must alternate user then assistant")
-
+    def reject_client_history(self) -> Self:
+        if self.history:
+            raise ValueError("chat history is stored by the server")
         return self
 
 

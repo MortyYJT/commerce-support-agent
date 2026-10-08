@@ -1,0 +1,505 @@
+[
+  {
+    "sample_id": "F01",
+    "source_annotation": {
+      "raw_question": "我上周买的那双鞋跑了两次就开胶了这也太坑了吧能不能给我退了啊",
+      "candidates": [],
+      "expect_match": null,
+      "expect_keywords": [
+        "质量",
+        "退"
+      ]
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "no_match",
+      "corrected_match": null,
+      "answerability": "partial",
+      "reason": "“上周购买”不能证明签收日期；鞋类是否符合条件仍需核验。",
+      "known_points": [
+        {
+          "text": "无理由退货期限自签收起7天，需商品完好且不影响二次销售。",
+          "evidence_refs": [
+            "returns-policy::无理由退货/适用范围#e1"
+          ]
+        }
+      ],
+      "unknown_parts": [
+        {
+          "text": "商品类别及签收日期未确认。",
+          "evidence_refs": [],
+          "basis": "missing_input"
+        }
+      ],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "我上周买的那双鞋跑了两次就开胶了这也太坑了吧能不能给我退了啊",
+    "sources": [
+      {
+        "section_id": "returns-policy::无理由退货/适用范围",
+        "evidence": [
+          {
+            "id": "returns-policy::无理由退货/适用范围#e1",
+            "text": "自签收之日起 7 天内,商品完好、不影响二次销售的,支持无理由退货。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sample_id": "F02",
+    "source_annotation": {
+      "raw_question": "猫窝可以水洗吗",
+      "candidates": [
+        {
+          "id": 1,
+          "normalized_question": "猫窝是否支持水洗"
+        }
+      ],
+      "expect_match": 1,
+      "expect_keywords": []
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "match",
+      "corrected_match": 1,
+      "answerability": "supported",
+      "reason": "候选问题与“猫窝是否支持水洗”语义一致；候选匹配通过，不表示省略型号说明。",
+      "known_points": [
+        {
+          "text": "外套拆掉内部垫芯后装洗衣袋，轻柔冷水机洗，阴干不暴晒。",
+          "evidence_refs": [
+            "product-faq::猫窝是否可以机洗#e1"
+          ]
+        },
+        {
+          "text": "内部垫芯不可机洗，只能局部擦洗后晾干。",
+          "evidence_refs": [
+            "product-faq::猫窝是否可以机洗#e2"
+          ]
+        }
+      ],
+      "unknown_parts": [],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "猫窝可以水洗吗",
+    "sources": [
+      {
+        "section_id": "product-faq::猫窝是否可以机洗",
+        "evidence": [
+          {
+            "id": "product-faq::猫窝是否可以机洗#e1",
+            "text": "猫窝外套可以机洗,拆掉内部垫芯后装进洗衣袋,选轻柔模式冷水洗,洗后阴干不要暴晒。"
+          },
+          {
+            "id": "product-faq::猫窝是否可以机洗#e2",
+            "text": "内部垫芯不可机洗,进水后填充物会结块变形,只能局部擦洗后晾干。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sample_id": "F03",
+    "source_annotation": {
+      "raw_question": "猫窝脏了怎么洗才不会坏",
+      "candidates": [
+        {
+          "id": 1,
+          "normalized_question": "猫窝是否支持水洗"
+        }
+      ],
+      "expect_match": 1,
+      "expect_keywords": []
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "match",
+      "corrected_match": 1,
+      "answerability": "supported",
+      "reason": "清洗方式问题与候选问题直接一致；规范答案包含外套和垫芯的区别及洗护条件。",
+      "known_points": [
+        {
+          "text": "外套轻柔冷水机洗后阴干不暴晒；垫芯只能局部擦洗晾干。",
+          "evidence_refs": [
+            "product-faq::猫窝是否可以机洗#e1",
+            "product-faq::猫窝是否可以机洗#e2"
+          ]
+        }
+      ],
+      "unknown_parts": [],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "猫窝脏了怎么洗才不会坏",
+    "sources": [
+      {
+        "section_id": "product-faq::猫窝是否可以机洗",
+        "evidence": [
+          {
+            "id": "product-faq::猫窝是否可以机洗#e1",
+            "text": "猫窝外套可以机洗,拆掉内部垫芯后装进洗衣袋,选轻柔模式冷水洗,洗后阴干不要暴晒。"
+          },
+          {
+            "id": "product-faq::猫窝是否可以机洗#e2",
+            "text": "内部垫芯不可机洗,进水后填充物会结块变形,只能局部擦洗后晾干。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sample_id": "F04",
+    "source_annotation": {
+      "raw_question": "猫窝有什么颜色",
+      "candidates": [
+        {
+          "id": 1,
+          "normalized_question": "猫窝是否支持水洗"
+        }
+      ],
+      "expect_match": null,
+      "expect_keywords": [
+        "颜色"
+      ]
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "no_match",
+      "corrected_match": null,
+      "answerability": "no_evidence",
+      "reason": "颜色问题与清洗候选不匹配；规范资源也没有颜色目录。",
+      "known_points": [],
+      "unknown_parts": [
+        {
+          "text": "猫窝颜色规格未知。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "猫窝有什么颜色",
+    "sources": []
+  },
+  {
+    "sample_id": "F05",
+    "source_annotation": {
+      "raw_question": "你们家猫爬架的保修到底是几年啊问了好几次都没人理",
+      "candidates": [
+        {
+          "id": 3,
+          "normalized_question": "猫爬架保修期是多久"
+        }
+      ],
+      "expect_match": 3,
+      "expect_keywords": []
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "match",
+      "corrected_match": 3,
+      "answerability": "no_evidence",
+      "reason": "猫爬架保修期问题与候选3同义，因此保留候选匹配；但MH-CT30规格没有保修时长，电子类通用保修不能证明其适用。",
+      "known_points": [],
+      "unknown_parts": [
+        {
+          "text": "MH-CT30保修时长未说明。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "你们家猫爬架的保修到底是几年啊问了好几次都没人理",
+    "sources": []
+  },
+  {
+    "sample_id": "F06",
+    "source_annotation": {
+      "raw_question": "猫爬架坏了修一次要多少钱",
+      "candidates": [
+        {
+          "id": 3,
+          "normalized_question": "猫爬架保修期是多久"
+        }
+      ],
+      "expect_match": null,
+      "expect_keywords": [
+        "维修",
+        "费用"
+      ]
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "no_match",
+      "corrected_match": null,
+      "answerability": "no_evidence",
+      "reason": "单次维修费用与“猫爬架保修期”候选不是同一问题；规范资源没有维修报价。",
+      "known_points": [],
+      "unknown_parts": [
+        {
+          "text": "维修费用需售后核验。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "猫爬架坏了修一次要多少钱",
+    "sources": []
+  },
+  {
+    "sample_id": "F07",
+    "source_annotation": {
+      "raw_question": "智能猫砂盆第二代和第一代比升级了啥",
+      "candidates": [
+        {
+          "id": 5,
+          "normalized_question": "智能猫砂盆二代与一代的区别"
+        }
+      ],
+      "expect_match": 5,
+      "expect_keywords": []
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "match",
+      "corrected_match": 5,
+      "answerability": "no_evidence",
+      "reason": "“一代和二代升级”与候选5语义一致，保留问题匹配；规范规格按LP100/LP50/LP200区分，没有代际对比资料。",
+      "known_points": [],
+      "unknown_parts": [
+        {
+          "text": "一代/二代对应型号和升级差异未知。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "智能猫砂盆第二代和第一代比升级了啥",
+    "sources": []
+  },
+  {
+    "sample_id": "F08",
+    "source_annotation": {
+      "raw_question": "买的猫粮拆封了还能退吗急",
+      "candidates": [
+        {
+          "id": 7,
+          "normalized_question": "猫粮拆封后能否退货"
+        }
+      ],
+      "expect_match": 7,
+      "expect_keywords": []
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "match",
+      "corrected_match": 7,
+      "answerability": "partial",
+      "reason": "问题与候选7同义；一般消耗品例外已知，但不能由猫砂例子直接断言这笔猫粮订单结果。",
+      "known_points": [
+        {
+          "text": "已拆封猫砂等消耗品及标注不支持无理由退货的商品，非质量问题不支持退货。",
+          "evidence_refs": [
+            "returns-policy::不支持退货的商品#e1"
+          ]
+        }
+      ],
+      "unknown_parts": [
+        {
+          "text": "猫粮具体退货条件、质量问题及商品标识未提供，需核验。",
+          "evidence_refs": [],
+          "basis": "missing_input"
+        }
+      ],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "买的猫粮拆封了还能退吗急",
+    "sources": [
+      {
+        "section_id": "returns-policy::不支持退货的商品",
+        "evidence": [
+          {
+            "id": "returns-policy::不支持退货的商品#e1",
+            "text": "定制类、生鲜类、已拆封的猫砂等消耗品,以及标注「不支持无理由退货」的商品,非质量问题不支持退货。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sample_id": "F09",
+    "source_annotation": {
+      "raw_question": "双十一买的东西什么时候发货啊等好久了",
+      "candidates": [
+        {
+          "id": 7,
+          "normalized_question": "猫粮拆封后能否退货"
+        }
+      ],
+      "expect_match": null,
+      "expect_keywords": [
+        "发货"
+      ]
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "no_match",
+      "corrected_match": null,
+      "answerability": "partial",
+      "reason": "双十一发货问题与猫粮拆封退货候选不匹配；活动时效需看商品页且本例未提供商品。",
+      "known_points": [
+        {
+          "text": "现货付款后48小时内发货；预售按详情页标注。",
+          "evidence_refs": [
+            "product-faq::发货时效多久#e1"
+          ]
+        }
+      ],
+      "unknown_parts": [
+        {
+          "text": "未提供具体商品、付款时间、现货/预售或活动安排。",
+          "evidence_refs": [],
+          "basis": "missing_input"
+        }
+      ],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "双十一买的东西什么时候发货啊等好久了",
+    "sources": [
+      {
+        "section_id": "product-faq::发货时效多久",
+        "evidence": [
+          {
+            "id": "product-faq::发货时效多久#e1",
+            "text": "现货商品付款后 48 小时内发货,预售商品以商品详情页标注的发货时间为准。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sample_id": "F10",
+    "source_annotation": {
+      "raw_question": "猫别墅要自己装吗看着好复杂的样子装不好能找人吗",
+      "candidates": [],
+      "expect_match": null,
+      "expect_keywords": [
+        "安装"
+      ]
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "no_match",
+      "corrected_match": null,
+      "answerability": "clarify",
+      "reason": "“猫别墅”未证实等于型号MH-CT30，不套用猫爬架规格；即便是CT30，上门安装服务也未定义。",
+      "known_points": [],
+      "unknown_parts": [
+        {
+          "text": "需确认商品是否MH-CT30；上门安装服务未知。",
+          "evidence_refs": [],
+          "basis": "missing_input"
+        }
+      ],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "猫别墅要自己装吗看着好复杂的样子装不好能找人吗",
+    "sources": []
+  },
+  {
+    "sample_id": "F11",
+    "source_annotation": {
+      "raw_question": "上次那个客服说可以退结果到现在钱都没到我要投诉你们",
+      "candidates": [
+        {
+          "id": 9,
+          "normalized_question": "退款多久到账"
+        }
+      ],
+      "expect_match": 9,
+      "expect_keywords": []
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "match_partial_coverage",
+      "corrected_match": 9,
+      "answerability": "partial",
+      "reason": "退款候选9覆盖“钱没到账”的退款子诉求，但还遗漏“我要投诉”；命中不代表复合问题完整覆盖。",
+      "known_points": [
+        {
+          "text": "平台核验通过后原路退款，实际到账取决于支付渠道，不承诺具体到账天数。",
+          "evidence_refs": [
+            "returns-policy::无理由退货/退款时效#e1"
+          ]
+        },
+        {
+          "text": "投诉首次响应1小时、处理3个工作日。",
+          "evidence_refs": [
+            "after-sales-manual::常见问题处理时限#e1"
+          ]
+        }
+      ],
+      "unknown_parts": [
+        {
+          "text": "该订单实际退款进度和到账日期未提供。",
+          "evidence_refs": [],
+          "basis": "missing_input"
+        }
+      ],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "上次那个客服说可以退结果到现在钱都没到我要投诉你们",
+    "sources": [
+      {
+        "section_id": "returns-policy::无理由退货/退款时效",
+        "evidence": [
+          {
+            "id": "returns-policy::无理由退货/退款时效#e1",
+            "text": "退货商品经平台核验通过后,退款原路退回,到账时效以平台售后规则为准。平台不承诺具体到账天数,实际到账时间取决于支付渠道;不要向用户给出「几个工作日到账」这类具体数字。"
+          }
+        ]
+      },
+      {
+        "section_id": "after-sales-manual::常见问题处理时限",
+        "evidence": [
+          {
+            "id": "after-sales-manual::常见问题处理时限#e1",
+            "text": "| 投诉 | 1 小时 | 3 个工作日 |"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sample_id": "F12",
+    "source_annotation": {
+      "raw_question": "宠物烘干箱猫咪用会不会太热有没有温度上限",
+      "candidates": [],
+      "expect_match": null,
+      "expect_keywords": [
+        "温度"
+      ]
+    },
+    "review": {
+      "status": "reviewed",
+      "candidate_match_status": "no_match",
+      "corrected_match": null,
+      "answerability": "no_evidence",
+      "reason": "宠物烘干箱温度问题无对应候选，也没有该类商品的温度规格。",
+      "known_points": [],
+      "unknown_parts": [
+        {
+          "text": "温度上限未知。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "runtime_scope": "resource_only"
+    },
+    "evidence": "宠物烘干箱猫咪用会不会太热有没有温度上限",
+    "sources": []
+  }
+]

@@ -1,0 +1,1 @@
+"""Packaged, versioned business resources."""

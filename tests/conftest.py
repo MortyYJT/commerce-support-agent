@@ -69,6 +69,7 @@ def test_api() -> Iterator[tuple[FastAPI, TestClient]]:
     async def accept_chat(request: ChatRequest) -> dict[str, object]:
         return {
             "message": request.message,
+            "conversation_id": request.conversation_id,
             "history": [item.model_dump() for item in request.history],
         }
 

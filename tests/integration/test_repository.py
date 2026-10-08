@@ -1,0 +1,789 @@
+import asyncio
+import os
+import subprocess
+import sys
+from collections.abc import Iterator
+from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
+from typing import Any
+from uuid import uuid4
+
+import pytest
+from sqlalchemy import event, func, inspect, select, update
+from sqlalchemy.engine import make_url
+
+pytestmark = pytest.mark.integration
+
+
+@dataclass
+class MySQLHandle:
+    database_url: str = field(repr=False)
+    loop: asyncio.AbstractEventLoop
+    databases: list[Any] = field(default_factory=list, repr=False)
+
+
+@pytest.fixture
+def mysql_database() -> Iterator[MySQLHandle]:
+    database_url = os.environ.get("TEST_DATABASE_URL")
+    if not database_url:
+        pytest.fail("TEST_DATABASE_URL must name a disposable MySQL integration database")
+
+    parsed_url = make_url(database_url)
+    if parsed_url.drivername != "mysql+asyncmy":
+        pytest.fail("TEST_DATABASE_URL must use mysql+asyncmy")
+    if not parsed_url.database or not parsed_url.database.startswith("commerce_support_test_"):
+        pytest.fail("TEST_DATABASE_URL must use a commerce_support_test_ database name")
+
+    loop = asyncio.new_event_loop()
+    handle = MySQLHandle(database_url=database_url, loop=loop)
+    try:
+        yield handle
+    finally:
+        for database in handle.databases:
+            loop.run_until_complete(database.aclose())
+        loop.close()
+
+
+async def _new_database(handle: MySQLHandle) -> Any:
+    from commerce_support.config import Settings
+    from commerce_support.database import Database
+
+    database = Database(Settings(_env_file=None, database_url=handle.database_url))
+    handle.databases.append(database)
+    return database
+
+
+async def _initialize(database: Any) -> None:
+    from commerce_support.database.cli import initialize_database
+
+    await initialize_database(database)
+
+
+async def _table_counts(database: Any) -> dict[str, int]:
+    from commerce_support.database.models import FAQ, Conversation, Message, Ticket
+
+    async with database.sessions() as session:
+        models = {
+            "faq": FAQ,
+            "conversations": Conversation,
+            "messages": Message,
+            "tickets": Ticket,
+        }
+        counts = {}
+        for table_name, model in models.items():
+            counts[table_name] = await session.scalar(select(func.count()).select_from(model))
+        return counts
+
+
+async def _append_assistant_tool_call(
+    repository: Any,
+    context: Any,
+    *,
+    name: str,
+    args: dict[str, Any],
+    call_id: str,
+) -> None:
+    from langchain_core.messages import AIMessage
+
+    await repository.append_assistant_call(
+        context,
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": name,
+                    "args": args,
+                    "id": call_id,
+                    "type": "tool_call",
+                }
+            ],
+        ),
+    )
+
+
+def test_exactly_four_tables_and_foreign_keys(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+
+        async with database.engine.connect() as connection:
+            table_names = await connection.run_sync(
+                lambda sync_connection: set(inspect(sync_connection).get_table_names())
+            )
+            foreign_keys = await connection.run_sync(
+                lambda sync_connection: {
+                    table_name: inspect(sync_connection).get_foreign_keys(table_name)
+                    for table_name in ("conversations", "messages", "tickets")
+                }
+            )
+
+        assert table_names == {"faq", "conversations", "messages", "tickets"}
+        assert foreign_keys["messages"][0]["referred_table"] == "conversations"
+        assert foreign_keys["tickets"][0]["referred_table"] == "conversations"
+
+    loop.run_until_complete(run())
+
+
+def test_seed_is_idempotent(mysql_database: MySQLHandle) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import FAQ, Conversation, Message, Ticket
+        from commerce_support.resources.customer_support.loader import load_faq_seed_catalog
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+
+        catalog = load_faq_seed_catalog()
+        legacy_rows = {row["id"]: row for row in catalog.known_prior_rows[1]}
+        legacy_rows.update({row["id"]: row for row in catalog.known_prior_rows[2]})
+        custom_conversation_id = str(uuid4())
+        custom_turn_id = str(uuid4())
+        custom_ticket_id = f"TEST-{uuid4().hex[:12]}"
+        custom_faq_id = 800_000 + int(uuid4().hex[:6], 16)
+        custom_faq = FAQ(
+            id=custom_faq_id,
+            question=f"Custom integration FAQ {uuid4().hex}",
+            answer="Keep this custom FAQ.",
+            category="integration",
+        )
+        async with database.sessions.begin() as session:
+            for row_id, legacy in legacy_rows.items():
+                seeded = await session.get(FAQ, row_id)
+                assert seeded is not None
+                seeded.question = legacy["question"]
+                seeded.answer = legacy["answer"]
+                seeded.category = legacy["category"]
+            session.add(custom_faq)
+            session.add(
+                Conversation(
+                    id=custom_conversation_id,
+                    user_id="integration-test",
+                    status="idle",
+                    active_turn_id=None,
+                    active_until=None,
+                )
+            )
+            session.add(
+                Message(
+                    conversation_id=custom_conversation_id,
+                    turn_id=custom_turn_id,
+                    role="user",
+                    content="Keep this historical message.",
+                    turn_status="completed",
+                )
+            )
+            session.add(
+                Ticket(
+                    ticket_id=custom_ticket_id,
+                    conversation_id=custom_conversation_id,
+                    turn_id=custom_turn_id,
+                    tool_call_id=f"call-{uuid4().hex}",
+                    description="Keep this custom ticket.",
+                    ticket_type="other",
+                    status="open",
+                )
+            )
+
+        counts_before_second_seed = await _table_counts(database)
+
+        await _initialize(database)
+        counts_after_second_seed = await _table_counts(database)
+
+        assert counts_after_second_seed == counts_before_second_seed
+        async with database.sessions() as session:
+            return_faq = await session.get(FAQ, 1)
+            postage_faq = await session.get(FAQ, 2)
+            preserved_faq = await session.get(FAQ, custom_faq_id)
+            preserved_conversation = await session.get(Conversation, custom_conversation_id)
+            preserved_message = await session.scalar(
+                select(Message).where(
+                    Message.conversation_id == custom_conversation_id,
+                    Message.turn_id == custom_turn_id,
+                )
+            )
+            preserved_ticket = await session.get(Ticket, custom_ticket_id)
+
+        assert return_faq is not None and "7 天" in return_faq.answer
+        assert "30天" not in return_faq.answer
+        assert postage_faq is not None and "10 元" in postage_faq.answer
+        assert "12 元" in postage_faq.answer
+        assert preserved_faq is not None and preserved_faq.answer == "Keep this custom FAQ."
+        assert preserved_conversation is not None
+        assert preserved_message is not None
+        assert preserved_message.content == "Keep this historical message."
+        assert preserved_ticket is not None
+        assert preserved_ticket.description == "Keep this custom ticket."
+
+    loop.run_until_complete(run())
+
+
+def test_begin_turn_conflicts_for_an_active_conversation(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.chat_types import TurnContext
+        from commerce_support.database.models import Conversation
+        from commerce_support.database.repository import ChatRepository, TurnConflictError
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        repository = ChatRepository(database)
+
+        conversation_id = str(uuid4())
+        async with database.sessions.begin() as session:
+            session.add(
+                Conversation(
+                    id=conversation_id,
+                    user_id="integration-test",
+                    status="idle",
+                    active_turn_id=None,
+                    active_until=None,
+                )
+            )
+
+        results = await asyncio.gather(
+            repository.begin_turn("first request", conversation_id),
+            repository.begin_turn("competing request", conversation_id),
+            return_exceptions=True,
+        )
+        turns = [result for result in results if isinstance(result, TurnContext)]
+        conflicts = [result for result in results if isinstance(result, TurnConflictError)]
+
+        assert len(turns) == 1
+        assert len(conflicts) == 1
+
+        async with database.sessions() as session:
+            conversation = await session.get(Conversation, conversation_id)
+            assert conversation is not None
+            assert conversation.active_turn_id == turns[0].turn_id
+
+    loop.run_until_complete(run())
+
+
+def test_unknown_conversation_id_is_rejected(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.exceptions import ConversationNotFoundError
+        from commerce_support.database.models import Conversation
+        from commerce_support.database.repository import ChatRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        repository = ChatRepository(database)
+        unknown_id = "d16db790-8163-4cf8-aabb-2fcb5eae6a54"
+
+        with pytest.raises(ConversationNotFoundError):
+            await repository.begin_turn("request for unknown id", unknown_id)
+
+        async with database.sessions() as session:
+            assert await session.get(Conversation, unknown_id) is None
+
+    loop.run_until_complete(run())
+
+
+def test_expired_turn_cannot_finish_a_new_turn(mysql_database: MySQLHandle) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.exceptions import TurnOwnershipError
+        from commerce_support.database.models import Conversation, Message
+        from commerce_support.database.repository import ChatRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        repository = ChatRepository(database)
+        stale_turn = await repository.begin_turn("first request")
+
+        async with database.sessions.begin() as session:
+            await session.execute(
+                update(Conversation)
+                .where(Conversation.id == stale_turn.conversation_id)
+                .values(active_until=datetime.now(UTC).replace(tzinfo=None) - timedelta(seconds=1))
+            )
+
+        current_turn = await repository.begin_turn("second request", stale_turn.conversation_id)
+        with pytest.raises(TurnOwnershipError):
+            await repository.finish_turn(stale_turn, "stale response", "completed")
+
+        async with database.sessions() as session:
+            conversation = await session.get(Conversation, stale_turn.conversation_id)
+            stale_messages = list(
+                await session.scalars(
+                    select(Message).where(
+                        Message.conversation_id == stale_turn.conversation_id,
+                        Message.turn_id == stale_turn.turn_id,
+                    )
+                )
+            )
+
+        assert conversation is not None
+        assert conversation.active_turn_id == current_turn.turn_id
+        assert stale_messages
+        assert all(message.turn_status == "failed" for message in stale_messages)
+        assert not any(
+            message.role == "assistant" and message.content == "stale response"
+            for message in stale_messages
+        )
+
+    loop.run_until_complete(run())
+
+
+def test_finish_rejects_a_lease_that_expires_while_waiting_for_the_row_lock(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import Conversation, Message
+        from commerce_support.database.repository import ChatRepository, TurnOwnershipError
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        repository = ChatRepository(database)
+        context = await repository.begin_turn("finish after a lock wait")
+        lease_expires_at = (datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=3)).replace(
+            microsecond=850_000
+        )
+
+        async with database.sessions.begin() as session:
+            await session.execute(
+                update(Conversation)
+                .where(Conversation.id == context.conversation_id)
+                .values(active_until=lease_expires_at)
+            )
+
+        async with database.sessions() as session:
+            persisted_lease_expiry = await session.scalar(
+                select(Conversation.active_until).where(Conversation.id == context.conversation_id)
+            )
+        assert persisted_lease_expiry is not None
+
+        lock_session = database.sessions()
+        await lock_session.begin()
+        await lock_session.scalar(
+            select(Conversation).where(Conversation.id == context.conversation_id).with_for_update()
+        )
+        lock_attempted = asyncio.Event()
+
+        def signal_lock_attempt(
+            connection: Any,
+            cursor: Any,
+            statement: str,
+            parameters: Any,
+            execution_context: Any,
+            executemany: bool,
+        ) -> None:
+            del connection, cursor, parameters, execution_context, executemany
+            if "conversations" in statement.lower() and "for update" in statement.lower():
+                lock_attempted.set()
+
+        event.listen(database.engine.sync_engine, "before_cursor_execute", signal_lock_attempt)
+        finish_task = asyncio.create_task(
+            repository.finish_turn(context, "must not be saved", "completed")
+        )
+        lock_attempt_seen = False
+        finish_started_before_expiry = False
+        try:
+            try:
+                await asyncio.wait_for(lock_attempted.wait(), timeout=2)
+                lock_attempt_seen = True
+            except TimeoutError:
+                pass
+            if lock_attempt_seen:
+                now = datetime.now(UTC).replace(tzinfo=None)
+                finish_started_before_expiry = now < persisted_lease_expiry
+                await asyncio.sleep(max(0, (persisted_lease_expiry - now).total_seconds()) + 0.2)
+        finally:
+            event.remove(database.engine.sync_engine, "before_cursor_execute", signal_lock_attempt)
+            await lock_session.rollback()
+            await lock_session.close()
+
+        result = await asyncio.gather(finish_task, return_exceptions=True)
+        assert lock_attempt_seen
+        assert finish_started_before_expiry
+        assert len(result) == 1
+        assert isinstance(result[0], TurnOwnershipError)
+
+        async with database.sessions() as session:
+            conversation = await session.get(Conversation, context.conversation_id)
+            messages = list(
+                await session.scalars(
+                    select(Message).where(
+                        Message.conversation_id == context.conversation_id,
+                        Message.turn_id == context.turn_id,
+                    )
+                )
+            )
+
+        assert conversation is not None
+        assert conversation.active_turn_id == context.turn_id
+        assert messages
+        assert all(message.turn_status != "completed" for message in messages)
+        assert not any(
+            message.role == "assistant" and message.content == "must not be saved"
+            for message in messages
+        )
+
+    loop.run_until_complete(run())
+
+
+def test_only_completed_turns_enter_stable_paired_history(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+
+        from commerce_support.database.repository import ChatRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        repository = ChatRepository(database)
+
+        completed = await repository.begin_turn("find the return policy")
+        await repository.append_assistant_call(
+            completed,
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "query_faq",
+                        "args": {"keyword": "return policy"},
+                        "id": "call-faq-1",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+        )
+        await repository.append_tool_result(
+            completed,
+            "call-faq-1",
+            {"status": "success", "data": [{"question": "Return policy", "answer": "30 days"}]},
+        )
+        await repository.finish_turn(completed, "Returns are accepted within 30 days.", "completed")
+
+        cancelled = await repository.begin_turn("second request", completed.conversation_id)
+        await repository.finish_turn(cancelled, "partial response", "cancelled")
+
+        history = await repository.successful_history(completed.conversation_id)
+
+        assert len(history) == 1
+        assert [type(message) for message in history[0]] == [
+            HumanMessage,
+            AIMessage,
+            ToolMessage,
+            AIMessage,
+        ]
+        assert history[0][0].content == "find the return policy"
+        assert history[0][1].tool_calls[0]["id"] == "call-faq-1"
+        assert history[0][2].tool_call_id == "call-faq-1"
+        assert history[0][2].content == (
+            '{"status":"success","data":[{"question":"Return policy","answer":"30 days"}]}'
+        )
+        assert history[0][3].content == "Returns are accepted within 30 days."
+
+    loop.run_until_complete(run())
+
+
+def test_ticket_creation_rejects_a_different_tool_name(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import Ticket
+        from commerce_support.database.repository import ChatRepository, TicketRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        chat_repository = ChatRepository(database)
+        ticket_repository = TicketRepository(database)
+        context = await chat_repository.begin_turn("find a return policy")
+        await _append_assistant_tool_call(
+            chat_repository,
+            context,
+            name="query_faq",
+            args={"keyword": "return policy"},
+            call_id="call-not-a-ticket",
+        )
+
+        with pytest.raises(RuntimeError):
+            await ticket_repository.create_once(
+                context, "call-not-a-ticket", "Create a return request.", "return"
+            )
+
+        async with database.sessions() as session:
+            count = await session.scalar(
+                select(func.count())
+                .select_from(Ticket)
+                .where(Ticket.conversation_id == context.conversation_id)
+            )
+        assert count == 0
+
+    loop.run_until_complete(run())
+
+
+def test_ticket_creation_rejects_arguments_that_differ_from_the_tool_call(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import Ticket
+        from commerce_support.database.repository import ChatRepository, TicketRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        chat_repository = ChatRepository(database)
+        ticket_repository = TicketRepository(database)
+        context = await chat_repository.begin_turn("create a return request")
+        await _append_assistant_tool_call(
+            chat_repository,
+            context,
+            name="create_ticket",
+            args={"description": "Recorded description", "ticket_type": "return"},
+            call_id="call-ticket-args-mismatch",
+        )
+
+        with pytest.raises(RuntimeError):
+            await ticket_repository.create_once(
+                context, "call-ticket-args-mismatch", "Different description", "return"
+            )
+
+        async with database.sessions() as session:
+            count = await session.scalar(
+                select(func.count())
+                .select_from(Ticket)
+                .where(Ticket.conversation_id == context.conversation_id)
+            )
+        assert count == 0
+
+    loop.run_until_complete(run())
+
+
+def test_ticket_replay_rejects_changed_arguments_without_mutation(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import Ticket
+        from commerce_support.database.repository import ChatRepository, TicketRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        chat_repository = ChatRepository(database)
+        ticket_repository = TicketRepository(database)
+        context = await chat_repository.begin_turn("create a return request")
+        original_description = "The item arrived damaged."
+        await _append_assistant_tool_call(
+            chat_repository,
+            context,
+            name="create_ticket",
+            args={"description": original_description, "ticket_type": "return"},
+            call_id="call-ticket-replay-mismatch",
+        )
+        original = await ticket_repository.create_once(
+            context, "call-ticket-replay-mismatch", original_description, "return"
+        )
+
+        with pytest.raises(RuntimeError):
+            await ticket_repository.create_once(
+                context,
+                "call-ticket-replay-mismatch",
+                "Changed description.",
+                "exchange",
+            )
+
+        async with database.sessions() as session:
+            stored_ticket = await session.get(Ticket, original["ticket_id"])
+            count = await session.scalar(
+                select(func.count())
+                .select_from(Ticket)
+                .where(Ticket.conversation_id == context.conversation_id)
+            )
+        assert count == 1
+        assert stored_ticket is not None
+        assert stored_ticket.description == original_description
+        assert stored_ticket.ticket_type == "return"
+
+    loop.run_until_complete(run())
+
+
+def test_ticket_replay_rejects_a_conflicting_existing_ticket(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import Ticket
+        from commerce_support.database.repository import ChatRepository, TicketRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        chat_repository = ChatRepository(database)
+        ticket_repository = TicketRepository(database)
+        context = await chat_repository.begin_turn("create a return request")
+        description = "The item arrived damaged."
+        call_id = "call-ticket-existing-conflict"
+        await _append_assistant_tool_call(
+            chat_repository,
+            context,
+            name="create_ticket",
+            args={"description": description, "ticket_type": "return"},
+            call_id=call_id,
+        )
+        created = await ticket_repository.create_once(context, call_id, description, "return")
+
+        async with database.sessions.begin() as session:
+            await session.execute(
+                update(Ticket)
+                .where(Ticket.ticket_id == created["ticket_id"])
+                .values(
+                    tool_call_id="tampered-ticket-call",
+                    description="Conflicting stored description.",
+                    ticket_type="other",
+                )
+            )
+
+        with pytest.raises(RuntimeError):
+            await ticket_repository.create_once(context, call_id, description, "return")
+
+        async with database.sessions() as session:
+            stored_ticket = await session.get(Ticket, created["ticket_id"])
+            count = await session.scalar(
+                select(func.count())
+                .select_from(Ticket)
+                .where(Ticket.conversation_id == context.conversation_id)
+            )
+        assert count == 1
+        assert stored_ticket is not None
+        assert stored_ticket.tool_call_id == "tampered-ticket-call"
+        assert stored_ticket.description == "Conflicting stored description."
+        assert stored_ticket.ticket_type == "other"
+
+    loop.run_until_complete(run())
+
+
+def test_ticket_creation_is_idempotent_for_a_tool_call(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from langchain_core.messages import AIMessage
+
+        from commerce_support.database.models import Ticket
+        from commerce_support.database.repository import ChatRepository, TicketRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        chat_repository = ChatRepository(database)
+        ticket_repository = TicketRepository(database)
+        context = await chat_repository.begin_turn("I need to return an item")
+        await chat_repository.append_assistant_call(
+            context,
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "create_ticket",
+                        "args": {
+                            "description": "The item arrived damaged.",
+                            "ticket_type": "return",
+                        },
+                        "id": "call-ticket-1",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+        )
+
+        first = await ticket_repository.create_once(
+            context, "call-ticket-1", "The item arrived damaged.", "return"
+        )
+        second = await ticket_repository.create_once(
+            context, "call-ticket-1", "The item arrived damaged.", "return"
+        )
+
+        async with database.sessions() as session:
+            count = await session.scalar(
+                select(func.count())
+                .select_from(Ticket)
+                .where(Ticket.ticket_id == first["ticket_id"])
+            )
+
+        assert first == second
+        assert count == 1
+
+    loop.run_until_complete(run())
+
+
+def test_faq_search_treats_like_wildcards_as_literal_characters(
+    mysql_database: MySQLHandle,
+) -> None:
+    loop = mysql_database.loop
+
+    async def run() -> None:
+        from commerce_support.database.models import FAQ
+        from commerce_support.database.repository import FAQRepository
+
+        database = await _new_database(mysql_database)
+        await _initialize(database)
+        async with database.sessions.begin() as session:
+            if await session.get(FAQ, 9001) is None:
+                session.add_all(
+                    [
+                        FAQ(
+                            id=9001,
+                            question="Promo 100% guarantee",
+                            answer="Literal percent match",
+                            category="shipping",
+                        ),
+                        FAQ(
+                            id=9002,
+                            question="Promo 100X guarantee",
+                            answer="Wildcard false match",
+                            category="shipping",
+                        ),
+                    ]
+                )
+
+        results = await FAQRepository(database).search_literal("100%", limit=5)
+
+        assert [result["question"] for result in results] == ["Promo 100% guarantee"]
+
+    loop.run_until_complete(run())
+
+
+def test_database_init_cli_is_idempotent_and_does_not_echo_the_url(
+    mysql_database: MySQLHandle,
+) -> None:
+    environment = os.environ.copy()
+    environment["DATABASE_URL"] = mysql_database.database_url
+
+    for _ in range(2):
+        result = subprocess.run(
+            [sys.executable, "-m", "commerce_support.database.cli", "init"],
+            cwd=os.getcwd(),
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0
+        output = result.stdout + result.stderr
+        assert "mysql+asyncmy://" not in output
+        assert "commerce_support_test_task1" not in output

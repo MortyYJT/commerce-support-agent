@@ -1,0 +1,22 @@
+{
+  "managed_legacy_ids": {
+    "1": "product-faq::退货政策是什么",
+    "2": "faq_aliases.json:aliases[0]"
+  },
+  "resource_id_start": 900001,
+  "resource_id_collision_policy": "Fail initialization if a deterministic resource ID or question is occupied by a row that does not exactly match a known managed state.",
+  "known_legacy_rows": [
+    {
+      "id": 1,
+      "question": "退货政策是什么？",
+      "answer": "演示政策：符合条件的商品可在签收后30天内申请退货。",
+      "category": "returns"
+    },
+    {
+      "id": 2,
+      "question": "运费是多少？",
+      "answer": "演示费用：标准配送运费为8澳元。",
+      "category": "shipping"
+    }
+  ]
+}

@@ -12,9 +12,8 @@
   const emptyState = document.getElementById("emptyState");
   const announcer = document.getElementById("announcer");
 
-  const completedHistory = [];
-  const maxHistoryMessages = 40;
   let activeRequest = null;
+  let conversationId = null;
   let keepScrolledToBottom = true;
   const characterDelayMs = 17;
 
@@ -238,6 +237,15 @@
     body.textContent = text || "";
     bubble.appendChild(body);
 
+    const toolStatusList = document.createElement("div");
+    toolStatusList.className = "tool-status-list";
+    toolStatusList.setAttribute("role", "group");
+    toolStatusList.setAttribute("aria-label", "客服工具状态");
+    toolStatusList.hidden = true;
+    if (role === "assistant") {
+      bubble.appendChild(toolStatusList);
+    }
+
     const pending = document.createElement("div");
     pending.className = "message-pending";
     const dots = document.createElement("span");
@@ -280,8 +288,77 @@
       body: body,
       status: status,
       pending: pending,
-      note: note
+      note: note,
+      toolStatusList: toolStatusList
     };
+  }
+
+  const toolLabels = {
+    query_order: "查询订单",
+    query_product: "查询商品",
+    query_logistics: "查询物流",
+    query_faq: "查询常见问题",
+    create_ticket: "创建售后工单"
+  };
+
+  function toolStatusText(status, attempt) {
+    if (status === "running") {
+      return attempt > 1 ? "重试中 · 第 " + attempt + " 次" : "处理中";
+    }
+    if (status === "succeeded") {
+      return "已完成";
+    }
+    if (status === "not_found") {
+      return "没有匹配结果";
+    }
+    if (attempt > 1) {
+      return "第 " + attempt + " 次后失败";
+    }
+    return "未能完成";
+  }
+
+  function updateToolBadge(request, payload) {
+    if (
+      !payload ||
+      typeof payload.name !== "string" ||
+      typeof payload.tool_call_id !== "string" ||
+      payload.tool_call_id.length < 1 ||
+      payload.tool_call_id.length > 64 ||
+      !["running", "succeeded", "not_found", "failed"].includes(payload.status) ||
+      !Number.isInteger(payload.attempt) ||
+      payload.attempt < 0
+    ) {
+      request.protocolError = "服务响应格式异常";
+      return;
+    }
+
+    let badge = request.toolBadges.get(payload.tool_call_id);
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "tool-status-badge";
+      badge.setAttribute("role", "status");
+      badge.dataset.toolName = payload.name;
+      request.assistant.toolStatusList.appendChild(badge);
+      request.assistant.toolStatusList.hidden = false;
+      request.toolBadges.set(payload.tool_call_id, badge);
+    } else if (badge.dataset.toolName !== payload.name || badge.dataset.state !== "running") {
+      request.protocolError = "服务响应顺序异常";
+      return;
+    }
+
+    badge.dataset.state = payload.status;
+    badge.dataset.attempt = String(payload.attempt);
+    const toolLabel = toolLabels[payload.name] || "客服工具";
+    badge.textContent = toolLabel + " · " + toolStatusText(payload.status, payload.attempt);
+  }
+
+  function markRunningToolsUnconfirmed(request, message) {
+    request.toolBadges.forEach(function (badge) {
+      if (badge.dataset.state === "running") {
+        badge.dataset.state = "interrupted";
+        badge.textContent = badge.textContent.split(" · ")[0] + " · " + message;
+      }
+    });
   }
 
   function updateComposer() {
@@ -390,6 +467,7 @@
       return;
     }
 
+    markRunningToolsUnconfirmed(request, "连接中断，结果未确认");
     request.assistant.pending.hidden = true;
     request.assistant.body.classList.remove("is-streaming");
     if (!request.displayedText) {
@@ -467,8 +545,43 @@
       return;
     }
 
+    if (event.type === "conversation") {
+      if (request.doneSeen || request.conversationSeen) {
+        request.protocolError = "服务响应顺序异常";
+        return;
+      }
+      const payload = readEventPayload(event);
+      if (
+        !payload ||
+        typeof payload.conversation_id !== "string" ||
+        payload.conversation_id.length < 1 ||
+        payload.conversation_id.length > 36 ||
+        typeof payload.turn_id !== "string" ||
+        payload.turn_id.length < 1
+      ) {
+        request.protocolError = "服务响应格式异常";
+        return;
+      }
+      if (request.conversationId && payload.conversation_id !== request.conversationId) {
+        request.protocolError = "会话标识不一致";
+        return;
+      }
+      request.conversationSeen = true;
+      conversationId = payload.conversation_id;
+      return;
+    }
+
+    if (event.type === "tool_status") {
+      if (!request.conversationSeen || request.doneSeen) {
+        request.protocolError = "服务响应顺序异常";
+        return;
+      }
+      updateToolBadge(request, readEventPayload(event));
+      return;
+    }
+
     if (event.type === "delta") {
-      if (request.doneSeen) {
+      if (!request.conversationSeen || request.doneSeen) {
         request.protocolError = "服务响应顺序异常";
         return;
       }
@@ -485,7 +598,7 @@
     }
 
     if (event.type === "done") {
-      if (request.doneSeen) {
+      if (!request.conversationSeen || request.doneSeen) {
         request.protocolError = "服务响应顺序异常";
         return;
       }
@@ -494,12 +607,24 @@
         request.protocolError = "回复没有正常结束";
         return;
       }
+      let hasRunningTool = false;
+      request.toolBadges.forEach(function (badge) {
+        hasRunningTool = hasRunningTool || badge.dataset.state === "running";
+      });
+      if (hasRunningTool) {
+        request.protocolError = "工具状态没有正常结束";
+        return;
+      }
       request.doneSeen = true;
       return;
     }
 
     if (event.type === "error") {
       const payload = readEventPayload(event);
+      if (request.doneSeen) {
+        request.protocolError = "服务响应顺序异常";
+        return;
+      }
       const message = payload ? conciseErrorMessage(messageFromPayload(payload)) : "";
       request.serverError = message || "服务暂时无法完成这次回复。";
     }
@@ -548,6 +673,14 @@
     }
   }
 
+  function requestPayload(message, id) {
+    const payload = { message: message };
+    if (typeof id === "string") {
+      payload.conversation_id = id;
+    }
+    return payload;
+  }
+
   async function sendMessage() {
     if (activeRequest) {
       return;
@@ -569,17 +702,16 @@
     const controller = new AbortController();
     const request = {
       controller: controller,
-      userMessage: message,
+      conversationId: conversationId,
       assistant: assistantMessage,
-      history: completedHistory.map(function (entry) {
-        return { role: entry.role, content: entry.content };
-      }),
+      toolBadges: new Map(),
       answerText: "",
       displayedText: "",
       characterQueue: [],
       typeTimer: null,
       typeWaiters: [],
       hasVisibleText: false,
+      conversationSeen: false,
       doneSeen: false,
       protocolError: "",
       serverError: "",
@@ -600,10 +732,7 @@
           "Content-Type": "application/json",
           "Accept": "text/event-stream"
         },
-        body: JSON.stringify({
-          message: message,
-          history: request.history
-        }),
+        body: JSON.stringify(requestPayload(message, request.conversationId)),
         signal: controller.signal
       });
 
@@ -621,7 +750,13 @@
         return;
       }
 
-      if (request.serverError || request.protocolError || !request.doneSeen || !request.answerText) {
+      if (
+        request.serverError ||
+        request.protocolError ||
+        !request.conversationSeen ||
+        !request.doneSeen ||
+        !request.answerText
+      ) {
         await waitForTyping(request);
         if (!isCurrentRequest(request)) {
           return;
@@ -641,13 +776,6 @@
       request.assistant.root.dataset.state = "complete";
       request.assistant.status.textContent = "回复完成";
       request.assistant.note.hidden = true;
-      completedHistory.push(
-        { role: "user", content: request.userMessage },
-        { role: "assistant", content: request.answerText }
-      );
-      if (completedHistory.length > maxHistoryMessages) {
-        completedHistory.splice(0, completedHistory.length - maxHistoryMessages);
-      }
       activeRequest = null;
       updateComposer();
       announce("谷鱼Y的客服助手已回复，可以继续追问。");
@@ -681,6 +809,7 @@
     request.cancelled = true;
     request.controller.abort();
     discardQueuedText(request);
+    markRunningToolsUnconfirmed(request, "已停止，结果未确认");
     request.assistant.pending.hidden = true;
     request.assistant.body.classList.remove("is-streaming");
     if (!request.displayedText) {
@@ -707,7 +836,7 @@
 
   function startNewConversation() {
     cancelForNewConversation();
-    completedHistory.length = 0;
+    conversationId = null;
     messageList.querySelectorAll(".message").forEach(function (message) {
       message.remove();
     });

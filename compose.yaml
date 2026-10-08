@@ -1,0 +1,73 @@
+services:
+  mysql:
+    image: mysql:8.4.11
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: commerce_support
+      MYSQL_USER: commerce_support
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql-init/01-create-test-database.sql:/docker-entrypoint-initdb.d/01-create-test-database.sql:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping --silent --host=127.0.0.1 --user=root --password="$$MYSQL_ROOT_PASSWORD"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
+  init:
+    image: commerce-support-agent:stage2
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "-m", "commerce_support.database.cli", "init"]
+    restart: "no"
+    environment:
+      DATABASE_URL: mysql+asyncmy://commerce_support:${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}@mysql:3306/commerce_support
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  app:
+    image: commerce-support-agent:stage2
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql+asyncmy://commerce_support:${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}@mysql:3306/commerce_support
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-flash}
+      LLM_EXTRA_BODY_JSON: ${LLM_EXTRA_BODY_JSON:?Set LLM_EXTRA_BODY_JSON in .env when no provider-specific options are used}
+      INPUT_TOKEN_BUDGET: ${INPUT_TOKEN_BUDGET:-6144}
+      MAX_OUTPUT_TOKENS: ${MAX_OUTPUT_TOKENS:-1024}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-60}
+      TOOL_TIMEOUT_SECONDS: ${TOOL_TIMEOUT_SECONDS:-5}
+      TOOL_MAX_RETRIES: ${TOOL_MAX_RETRIES:-1}
+      CHAT_DEADLINE_SECONDS: ${CHAT_DEADLINE_SECONDS:-150}
+      TURN_LEASE_SECONDS: ${TURN_LEASE_SECONDS:-180}
+    ports:
+      - "127.0.0.1:8001:8000"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=2)
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  mysql_data:

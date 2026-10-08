@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import asyncio
 from collections.abc import AsyncIterator
 
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 
+from commerce_support.async_cleanup import close_async_iterator
+from commerce_support.chat_types import StreamEvent
 from commerce_support.errors import AppError
-from commerce_support.model import ModelChunk
 from commerce_support.schemas import ChatRequest
 from commerce_support.services import ChatService
 from commerce_support.sse import encode_sse
@@ -24,13 +24,25 @@ def register_chat_routes(application: FastAPI) -> None:
                 status_code=503,
             )
 
-        service = ChatService(gateway, request.app.state.settings)
-        messages = service.prepare(payload)
-        upstream = service.stream(messages)
-        first_chunk = await _first_text_before_disconnect(request, upstream)
+        repository = request.app.state.repository
+        if repository is None:
+            raise AppError(
+                "database_not_configured",
+                "聊天数据库尚未配置。",
+                status_code=503,
+            )
+
+        service = ChatService(
+            gateway,
+            request.app.state.settings,
+            repository,
+            request.app.state.tool_executor,
+            registry_factory=request.app.state.registry_factory,
+        )
+        context = await service.prepare(payload)
 
         return StreamingResponse(
-            _event_stream(upstream, first_chunk),
+            _event_stream(service.stream(context)),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -39,128 +51,61 @@ def register_chat_routes(application: FastAPI) -> None:
         )
 
 
-async def _first_text_chunk(upstream: AsyncIterator[ModelChunk]) -> ModelChunk:
-    while True:
-        try:
-            chunk = await anext(upstream)
-        except StopAsyncIteration:
-            raise AppError(
-                "empty_upstream_response",
-                "模型未返回有效回复，请稍后重试。",
-                status_code=502,
-            ) from None
-
-        if chunk.content:
-            return chunk
-        if chunk.finish_reason is not None:
-            raise _finish_error(chunk.finish_reason)
-
-
-async def _first_text_before_disconnect(
-    request: Request,
-    upstream: AsyncIterator[ModelChunk],
-) -> ModelChunk:
-    first_chunk_task = asyncio.create_task(_first_text_chunk(upstream))
+async def _event_stream(events: AsyncIterator[StreamEvent]) -> AsyncIterator[str]:
     try:
-        while True:
-            if await request.is_disconnected():
-                await _cancel_and_wait(first_chunk_task)
-                await _close_iterator(upstream)
-                raise asyncio.CancelledError
-
-            completed, _pending = await asyncio.wait(
-                {first_chunk_task},
-                timeout=0.05,
-            )
-            if completed:
-                return await first_chunk_task
-    except BaseException:
-        if not first_chunk_task.done():
-            await _cancel_and_wait(first_chunk_task)
-        await _close_iterator(upstream)
-        raise
-
-
-async def _event_stream(
-    upstream: AsyncIterator[ModelChunk],
-    first_chunk: ModelChunk,
-) -> AsyncIterator[str]:
-    has_text = False
-    chunk = first_chunk
-    try:
-        while True:
-            if chunk.content:
-                has_text = True
-                yield encode_sse("delta", {"content": chunk.content})
-
-            if chunk.finish_reason is not None:
-                if chunk.finish_reason == "stop" and has_text:
-                    yield encode_sse("done", {"finish_reason": "stop"})
-                else:
-                    error = _finish_error(chunk.finish_reason)
-                    yield encode_sse(
-                        "error",
-                        {"code": error.code, "message": error.public_message},
-                    )
-                return
-
-            try:
-                chunk = await anext(upstream)
-            except StopAsyncIteration:
-                yield encode_sse(
-                    "error",
-                    {
-                        "code": "incomplete_upstream_stream",
-                        "message": "模型回复意外中断，请重试。",
-                    },
-                )
-                return
-            except AppError as error:
-                yield encode_sse(
-                    "error",
-                    {"code": error.code, "message": error.public_message},
-                )
-                return
+        async for event in events:
+            encoded = _encode_public_event(event)
+            if encoded is not None:
+                yield encoded
     finally:
-        await _close_iterator(upstream)
+        await close_async_iterator(events)
 
 
-def _finish_error(finish_reason: str) -> AppError:
-    if finish_reason == "length":
-        return AppError(
-            "output_truncated",
-            "模型回复达到长度限制，未完成回复，请缩短问题后重试。",
-            status_code=502,
+def _encode_public_event(event: StreamEvent) -> str | None:
+    data = event.data
+    if event.event == "conversation":
+        conversation_id = data.get("conversation_id")
+        turn_id = data.get("turn_id")
+        if not isinstance(conversation_id, str) or not isinstance(turn_id, str):
+            return None
+        return encode_sse(
+            "conversation",
+            {"conversation_id": conversation_id, "turn_id": turn_id},
         )
-    if finish_reason == "stop":
-        return AppError(
-            "empty_upstream_response",
-            "模型未返回有效回复，请稍后重试。",
-            status_code=502,
+    if event.event == "tool_status":
+        name = data.get("name")
+        call_id = data.get("tool_call_id")
+        status = data.get("status")
+        attempt = data.get("attempt")
+        if (
+            not isinstance(name, str)
+            or not isinstance(call_id, str)
+            or status not in {"running", "succeeded", "not_found", "failed"}
+            or not isinstance(attempt, int)
+        ):
+            return None
+        return encode_sse(
+            "tool_status",
+            {
+                "name": name,
+                "tool_call_id": call_id,
+                "status": status,
+                "attempt": attempt,
+            },
         )
-    return AppError(
-        "upstream_finish_error",
-        "模型未能完成回答，请稍后重试。",
-        status_code=502,
-    )
-
-
-async def _close_iterator(iterator: object) -> None:
-    close = getattr(iterator, "aclose", None)
-    if close is None:
-        return
-    try:
-        await close()
-    except asyncio.CancelledError:
-        raise
-    except Exception:  # noqa: BLE001 - do not leak iterator-close failures.
-        return
-
-
-async def _cancel_and_wait(task: asyncio.Task[ModelChunk]) -> None:
-    if not task.done():
-        task.cancel()
-    try:
-        await task
-    except BaseException:  # noqa: BLE001 - cancellation cleanup consumes its task result.
-        return
+    if event.event == "delta":
+        content = data.get("content")
+        if not isinstance(content, str) or not content:
+            return None
+        return encode_sse("delta", {"content": content})
+    if event.event == "done":
+        if data.get("finish_reason") != "stop":
+            return None
+        return encode_sse("done", {"finish_reason": "stop"})
+    if event.event == "error":
+        code = data.get("code")
+        message = data.get("message")
+        if not isinstance(code, str) or not isinstance(message, str):
+            return None
+        return encode_sse("error", {"code": code, "message": message})
+    return None

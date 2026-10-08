@@ -1,5 +1,9 @@
 """Chat message construction and context budgeting."""
 
+import json
+from collections.abc import Sequence
+from typing import Any
+
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from commerce_support.errors import BudgetExceeded
@@ -43,3 +47,66 @@ def build_chat_messages(
             )
 
         del retained_history[:2]
+
+
+def build_persisted_messages(
+    system: str,
+    history_groups: list[list[BaseMessage]],
+    current_group: list[BaseMessage],
+    tool_schemas: Sequence[Any],
+    budget: int,
+) -> list[BaseMessage]:
+    """Build a prompt while trimming only complete persisted history turns."""
+    system_message = SystemMessage(content=system)
+    retained_history = list(history_groups)
+
+    while True:
+        messages = [system_message]
+        for group in retained_history:
+            messages.extend(group)
+        messages.extend(current_group)
+
+        if _estimate_persisted_size(messages, tool_schemas) <= budget:
+            return messages
+        if not retained_history:
+            raise BudgetExceeded(
+                code=_BUDGET_ERROR_CODE,
+                public_message=_BUDGET_ERROR_MESSAGE,
+            )
+
+        del retained_history[0]
+
+
+def _estimate_persisted_size(
+    messages: list[BaseMessage],
+    tool_schemas: Sequence[Any],
+) -> int:
+    size = 3
+    for message in messages:
+        size += len(_json_bytes(message.model_dump(mode="json"))) + 8
+    for schema in tool_schemas:
+        size += len(_json_bytes(_tool_schema_payload(schema))) + 8
+    return size
+
+
+def _tool_schema_payload(schema: Any) -> Any:
+    if isinstance(schema, dict):
+        return schema
+
+    name = getattr(schema, "name", None)
+    description = getattr(schema, "description", "")
+    input_schema = getattr(schema, "tool_call_schema", None)
+    if input_schema is None:
+        input_schema = getattr(schema, "args_schema", None)
+    if input_schema is not None and hasattr(input_schema, "model_json_schema"):
+        input_schema = input_schema.model_json_schema()
+    return {"name": name, "description": description, "parameters": input_schema}
+
+
+def _json_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
