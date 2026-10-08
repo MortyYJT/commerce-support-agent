@@ -343,6 +343,12 @@ def test_active_cases_encode_migrated_faq_policy_and_a_real_unknown_query() -> N
             False,
             id="wrong-order-date-clock",
         ),
+        pytest.param(
+            "7 天内支持无理由退货，7 天从签收之日起算。",
+            "签收后 17 天内可以申请无理由退货。",
+            False,
+            id="seventeen-days-is-not-seven-days",
+        ),
     ],
 )
 def test_return_policy_eval_rejects_stale_window(

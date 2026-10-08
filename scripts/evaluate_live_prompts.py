@@ -5,6 +5,7 @@ import asyncio
 import json
 import os
 import random
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -151,7 +152,8 @@ def _states_current_return_window(text: str) -> bool:
         marker in normalized
         for marker in ("从签收之日", "自签收之日", "签收之日起", "签收后")
     )
-    return "7天" in normalized and receipt_clock
+    has_seven_day_window = re.search(r"(?<!\d)7天", normalized) is not None
+    return has_seven_day_window and receipt_clock
 
 
 def _unknown_faq_keyword_is_valid(
