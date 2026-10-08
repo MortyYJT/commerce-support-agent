@@ -54,7 +54,8 @@
       "normalized_path": "knowledge/product-faq.md",
       "revision_reasons": [
         "Align the shipping summary with the approved 99/10/12 CNY policy and explicitly state the postage term used by FAQ matching.",
-        "Make the electronic invoice timing explicitly start after approval; paper dispatch and actual delivery remain distinct."
+        "Make the electronic invoice timing explicitly start after approval; paper dispatch and actual delivery remain distinct.",
+        "Carry the receipt-based seven-day clock into the customer-facing return FAQ, so standalone SQL lookup does not depend on uncited context."
       ]
     },
     {
@@ -86,7 +87,8 @@
     ],
     "product-faq.md": [
       "Align the shipping summary with the approved 99/10/12 CNY policy and explicitly state the postage term used by FAQ matching.",
-      "Make the electronic invoice timing explicitly start after approval; paper dispatch and actual delivery remain distinct."
+      "Make the electronic invoice timing explicitly start after approval; paper dispatch and actual delivery remain distinct.",
+      "Carry the receipt-based seven-day clock into the customer-facing return FAQ, so standalone SQL lookup does not depend on uncited context."
     ]
   },
   "provenance_notes": [
@@ -113,7 +115,7 @@
     "knowledge/after-sales-manual.md": "2fb60cad5431f31391fa36c935a04df3af37c73b3d094fce8f8d613ead1b1e9f",
     "knowledge/billing-shipping.md": "e94fa7e9298c8dbaaedc451660898e3650c8e340d999e4fe53aeae8df3236f26",
     "knowledge/member-benefits.md": "7efbff8511f414b7d5b60b07160e7e8f5b92f5123eac6d1eb50483e3eb7399fd",
-    "knowledge/product-faq.md": "bf5ffb2a63acd7d9b31f4ddf1e7915fed63e73c93cfe32a9f2b334c561613737",
+    "knowledge/product-faq.md": "5026be3032e21e11a0c56cdf857c3e80c58ce15e8d7e8ee8569b1f2eb355eacd",
     "knowledge/product-specs.md": "21c77a33b26d95264f7eb37509a521c2c37d3ebca0d3b9b85c1e83d353eced92",
     "knowledge/returns-policy.md": "fd9543748df085444df5ffddec2191500aa26ba7260038c02c177f954d11870f",
     "legacy/original/knowledge/after-sales-manual.md": "c30d2bb70d3808618ac982695fe9bae93b18118cb99cde1f0ef65993231b7610",
@@ -141,7 +143,7 @@
     "samples/retrieval_reviewed.json": "3542f1b827e7fd25d5467ed1205368ec6ecbc9418ebf327dc16c30ac126fe554",
     "samples/rewrite_reviewed.jsonl": "46fe5f908a61c28cb3910d6764e37403fcb633146ca8cbda04c1cf8173f4ffcb",
     "samples/source_index.json": "acce6dcb6b94c5bca58495cd6e6c73b33d8ef6dab1f7d4c5c03dc2a141471fdc",
-    "sections.json": "a0e24f2a528d28152ff17f7ef56e5ca5ea66b8770beb7b0ac40cfe3a13a21b3c",
+    "sections.json": "9e5b0749b0d9b2e676cbe9bc99bb7dbbe5be26c2fad695d0a238fe713fd6d01c",
     "taxonomy.json": "5a756486cfd0439c600e1e546b180a2dd5e6a9c962c9f34f4a322f909950cd36"
   }
 }
