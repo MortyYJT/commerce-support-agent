@@ -95,6 +95,18 @@ def test_rag_validator_rejects_answer_points_without_source_references() -> None
     assert any("answer point has no evidence reference" in error for error in errors)
 
 
+def test_rag_validator_requires_unknown_parts_for_a_partial_answer() -> None:
+    record = _record(disposition="partial")
+    record["review"]["unknown_parts"] = []
+
+    errors = validate_rag_records(
+        [record],
+        {"billing-shipping::运费与包邮": "单笔实付满99元包邮。"},
+    )
+
+    assert any("partial requires at least one unknown part" in error for error in errors)
+
+
 def test_rag_validator_distinguishes_missing_input_from_unsupported_policy() -> None:
     record = _record(
         unknown_parts=[

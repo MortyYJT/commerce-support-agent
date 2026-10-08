@@ -197,6 +197,8 @@ def validate_rag_records(
                 errors.append(f"{sample_id}: {disposition} must not refuse")
             if not points:
                 errors.append(f"{sample_id}: {disposition} requires an answer point")
+            if disposition == "partial" and not unknown_parts:
+                errors.append(f"{sample_id}: partial requires at least one unknown part")
         elif disposition == "clarify" and should_refuse is not False:
             errors.append(f"{sample_id}: clarify must not be labeled as a refusal")
     return errors
