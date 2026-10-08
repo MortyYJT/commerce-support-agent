@@ -54,4 +54,4 @@ curl -N -H 'Content-Type: application/json' \
 
 ## CI / 部署边界
 
-三个GitHub Actions检查已配置；最终提交的运行结果以PR当前HEAD为准。本机Docker部署已验证；远端部署/CD留后续阶段，未验证。
+三个GitHub Actions检查已配置；f3eb3f8的CI run37719759734中offline、mysql-integration、docker-build全部success。收尾文档提交的运行结果以PR当前HEAD为准。本机Docker部署已验证；远端部署/CD留后续阶段，未验证。
