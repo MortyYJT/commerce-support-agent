@@ -1,0 +1,169 @@
+[
+  {
+    "sample_id": "R01",
+    "source_annotation": {
+      "query": "邮费是多少",
+      "expect_answer_contains": "包邮"
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "旧检索期望仅验证“包邮”且答案没包含当前完整政策；改为检查迁移后的99/10/12口径。",
+      "expected_answer_points": [
+        {
+          "text": "满99元包邮；未满收取10元基础运费；偏远地区加收12元且不参与包邮。",
+          "evidence_refs": [
+            "product-faq::运费怎么算#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "product-faq::运费怎么算",
+        "evidence": [
+          {
+            "id": "product-faq::运费怎么算#e1",
+            "text": "单笔实付满 99 元包邮,未满收取 10 元基础运费;偏远地区加收 12 元附加运费,该附加运费不参与包邮。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sample_id": "R02",
+    "source_annotation": {
+      "query": "快递费怎么收",
+      "expect_answer_contains": "运费"
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "此为资源级语义检索预期；当前SQL LIKE不自动把快递费改写为邮费。",
+      "expected_answer_points": [
+        {
+          "text": "邮费即运费；单笔实付99元包邮，否则10元，偏远另加12元不参与包邮。",
+          "evidence_refs": [
+            "product-faq::运费怎么算#e1"
+          ]
+        }
+      ],
+      "unknown_parts": []
+    },
+    "sources": [
+      {
+        "section_id": "product-faq::运费怎么算",
+        "evidence": [
+          {
+            "id": "product-faq::运费怎么算#e1",
+            "text": "单笔实付满 99 元包邮,未满收取 10 元基础运费;偏远地区加收 12 元附加运费,该附加运费不参与包邮。邮费即运费,按「运费与包邮」规则收取。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sample_id": "R03",
+    "source_annotation": {
+      "query": "多久能发货",
+      "expect_answer_contains": "48"
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "同时保留现货与预售边界，避免把48小时套用到预售。",
+      "expected_answer_points": [
+        {
+          "text": "现货付款后48小时内发货；预售按商品详情页时间发货。",
+          "evidence_refs": [
+            "product-faq::发货时效多久#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "product-faq::发货时效多久",
+        "evidence": [
+          {
+            "id": "product-faq::发货时效多久#e1",
+            "text": "现货商品付款后 48 小时内发货,预售商品以商品详情页标注的发货时间为准。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sample_id": "R04",
+    "source_annotation": {
+      "query": "东西不想要了能退吗",
+      "expect_answer_contains": "7"
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "7天自签收起算；退货条件仍需商品完好且不影响二次销售。",
+      "expected_answer_points": [
+        {
+          "text": "自签收起7天内，商品完好且不影响二次销售可申请无理由退货；具体状态需核验。",
+          "evidence_refs": [
+            "returns-policy::无理由退货/适用范围#e1",
+            "product-faq::退货政策是什么#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "returns-policy::无理由退货/适用范围",
+        "evidence": [
+          {
+            "id": "returns-policy::无理由退货/适用范围#e1",
+            "text": "自签收之日起 7 天内,商品完好、不影响二次销售的,支持无理由退货。"
+          }
+        ]
+      },
+      {
+        "section_id": "product-faq::退货政策是什么",
+        "evidence": [
+          {
+            "id": "product-faq::退货政策是什么#e1",
+            "text": "支持 7 天无理由退货,商品需保持完好、不影响二次销售,具体以平台售后规则为准。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sample_id": "R05",
+    "source_annotation": {
+      "query": "怎么开发票",
+      "expect_answer_contains": "开票"
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "开票入口和电子票时效来自当前规范FAQ；实际送达时间不额外承诺。",
+      "expected_answer_points": [
+        {
+          "text": "在我的订单提交抬头与税号申请开票，电子票申请通过后3个工作日内开出，发送申请邮箱。",
+          "evidence_refs": [
+            "product-faq::发票如何开具#e1"
+          ]
+        }
+      ],
+      "unknown_parts": []
+    },
+    "sources": [
+      {
+        "section_id": "product-faq::发票如何开具",
+        "evidence": [
+          {
+            "id": "product-faq::发票如何开具#e1",
+            "text": "在「我的订单」-「申请开票」提交抬头与税号,电子发票在申请通过后 3 个工作日内开出,开好后发送至申请时填写的邮箱。"
+          }
+        ]
+      }
+    ]
+  }
+]

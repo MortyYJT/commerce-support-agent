@@ -1,0 +1,699 @@
+[
+  {
+    "case_id": "B01",
+    "category": "shipping_fee",
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "99元门槛、10元基础运费和12元偏远附加费须一起按当前版本解释。",
+      "unknown_parts": [],
+      "expected_answer_points": [
+        {
+          "text": "单笔实付满99元包邮，未满收取10元基础运费；偏远地区另加12元且不参与包邮。",
+          "evidence_refs": [
+            "billing-shipping::运费与包邮#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "billing-shipping::运费与包邮",
+        "evidence": [
+          {
+            "id": "billing-shipping::运费与包邮#e1",
+            "text": "单笔实付满 99 元包邮,未满收取 10 元基础运费。\n偏远地区(新疆、西藏、内蒙古部分区域)加收 12 元附加运费,该附加运费不参与包邮,\n需单独支付。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B02",
+    "category": "member_shipping_vs_remote_surcharge",
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "会员次数抵基础运费；12元偏远附加费不抵扣。",
+      "unknown_parts": [],
+      "expected_answer_points": [
+        {
+          "text": "有效会员次数抵基础运费，不冲抵偏远附加费。",
+          "evidence_refs": [
+            "product-faq::会员运费权益#e1"
+          ]
+        },
+        {
+          "text": "单笔实付满99元包邮，未满收取10元基础运费；偏远地区另加12元且不参与包邮。",
+          "evidence_refs": [
+            "billing-shipping::运费与包邮#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "product-faq::会员运费权益",
+        "evidence": [
+          {
+            "id": "product-faq::会员运费权益#e1",
+            "text": "金卡会员每月享 3 次免运费权益,银卡会员享 1 次;权益不与偏远地区附加运费冲抵,当月未用完不结转。免运费权益直接抵掉该订单的基础运费(即未满 99 元包邮门槛时收取的那笔),按实际运费全额抵扣,不设每单抵扣上限——「未满 99 元收 10 元运费」里的 10 元是运费本身,不是权益上限。"
+          }
+        ]
+      },
+      {
+        "section_id": "billing-shipping::运费与包邮",
+        "evidence": [
+          {
+            "id": "billing-shipping::运费与包邮#e1",
+            "text": "单笔实付满 99 元包邮,未满收取 10 元基础运费。\n偏远地区(新疆、西藏、内蒙古部分区域)加收 12 元附加运费,该附加运费不参与包邮,\n需单独支付。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B03",
+    "category": "points_redemption",
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "兑换10元基础运费使用1000积分；累计积分与抵扣比例需区分。",
+      "unknown_parts": [],
+      "expected_answer_points": [
+        {
+          "text": "100积分抵1元，单笔最多抵30元。",
+          "evidence_refs": [
+            "member-benefits::积分怎么用#e1"
+          ]
+        },
+        {
+          "text": "未满门槛的10元基础运费可用1000积分抵掉。",
+          "evidence_refs": [
+            "member-benefits::积分怎么用#e2"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "member-benefits::积分怎么用",
+        "evidence": [
+          {
+            "id": "member-benefits::积分怎么用#e1",
+            "text": "积分在结算页勾选使用,100 积分抵 1 元现金,单笔最多抵 30 元。"
+          },
+          {
+            "id": "member-benefits::积分怎么用#e2",
+            "text": "积分可直接抵扣运费,未满包邮门槛的 10 元基础运费可用 1000 积分抵掉,抵满即视为包邮。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B04",
+    "category": "points_redemption_item",
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "2000积分是上门换滤芯服务，不是3片滤芯；3片滤芯1500积分。",
+      "unknown_parts": [],
+      "expected_answer_points": [
+        {
+          "text": "1500积分兑换滤芯3片。",
+          "evidence_refs": [
+            "member-benefits::积分怎么用#e1"
+          ]
+        },
+        {
+          "text": "2000积分兑换一次上门更换滤芯服务。",
+          "evidence_refs": [
+            "member-benefits::积分怎么用#e2"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "member-benefits::积分怎么用",
+        "evidence": [
+          {
+            "id": "member-benefits::积分怎么用#e1",
+            "text": "积分也可在会员中心兑换实物:800 积分兑猫零食小样一份,1500 积分兑自动饮水机滤芯 3 片,"
+          },
+          {
+            "id": "member-benefits::积分怎么用#e2",
+            "text": "2000 积分兑上门更换一次滤芯的服务。积分有效期 24 个月,过期自动清零。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B05",
+    "category": "redemption_shipping_unknown",
+    "review": {
+      "status": "reviewed",
+      "disposition": "partial",
+      "reason": "来源未定义兑换商品运费，不从普通商品运费推断。",
+      "unknown_parts": [
+        {
+          "text": "兑换实物运费未定义，不从普通订单推断。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "expected_answer_points": [
+        {
+          "text": "800积分兑换猫零食小样。",
+          "evidence_refs": [
+            "member-benefits::积分怎么用#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "member-benefits::积分怎么用",
+        "evidence": [
+          {
+            "id": "member-benefits::积分怎么用#e1",
+            "text": "积分也可在会员中心兑换实物:800 积分兑猫零食小样一份,1500 积分兑自动饮水机滤芯 3 片,"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B06",
+    "category": "member_discount",
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "保留原文折扣，不交换银卡与金卡。",
+      "unknown_parts": [],
+      "expected_answer_points": [
+        {
+          "text": "银卡9折、金卡95折及一张店铺券，忠实保留来源。",
+          "evidence_refs": [
+            "member-benefits::会员等级#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "member-benefits::会员等级",
+        "evidence": [
+          {
+            "id": "member-benefits::会员等级#e1",
+            "text": "银卡享商品 9 折,金卡享商品 95 折并额外获赠一张店铺券。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B07",
+    "category": "cumulative_vs_annual_threshold",
+    "review": {
+      "status": "reviewed",
+      "disposition": "partial",
+      "reason": "累计门槛不是年消费；等级有效期为自然年不等于消费门槛按年统计。",
+      "unknown_parts": [
+        {
+          "text": "按年消费重新达标的规则没有定义。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "expected_answer_points": [
+        {
+          "text": "按累计消费升级，1000元银卡、5000元金卡；等级有效期自然年。",
+          "evidence_refs": [
+            "member-benefits::会员等级#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "member-benefits::会员等级",
+        "evidence": [
+          {
+            "id": "member-benefits::会员等级#e1",
+            "text": "会员分普通、银卡、金卡三档,按累计消费自动升级,升级后立即生效,等级有效期为自然年。\n累计消费 1000 元起升银卡,累计消费 5000 元起升金卡。\n银卡享商品 9 折,金卡享商品 95 折并额外获赠一张店铺券。\n金卡会员每月享 3 次免运费,银卡会员每月 1 次。\n金卡会员生日当月可领取猫罐头礼盒一份,需在会员中心手动领取,过期不补发。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B08",
+    "category": "discount_stacking_unknown",
+    "review": {
+      "status": "reviewed",
+      "disposition": "partial",
+      "reason": "优惠券/满减说明不证明会员折扣可以叠加。",
+      "unknown_parts": [
+        {
+          "text": "会员折扣与优惠券是否叠加没有定义。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "expected_answer_points": [
+        {
+          "text": "优惠券在结算页勾选，同单一般一张店铺券，活动细则以页面为准。",
+          "evidence_refs": [
+            "product-faq::优惠券和满减怎么用#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "product-faq::优惠券和满减怎么用",
+        "evidence": [
+          {
+            "id": "product-faq::优惠券和满减怎么用#e1",
+            "text": "优惠券在结算页「使用优惠券」中勾选,满减活动自动叠加在商品页标示的门槛上;同一订单一般限用一张店铺券,活动细则以页面为准。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B09",
+    "category": "tier_downgrade_unknown",
+    "review": {
+      "status": "reviewed",
+      "disposition": "partial",
+      "reason": "积分同步扣回有依据；等级是否降级及其时间没有明文规则。",
+      "unknown_parts": [
+        {
+          "text": "退款后降级条件和时间没有定义。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "expected_answer_points": [
+        {
+          "text": "退货或退款积分同步扣回。",
+          "evidence_refs": [
+            "member-benefits::积分怎么攒#e1"
+          ]
+        },
+        {
+          "text": "会员按累计消费自动升级。",
+          "evidence_refs": [
+            "member-benefits::会员等级#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "member-benefits::积分怎么攒",
+        "evidence": [
+          {
+            "id": "member-benefits::积分怎么攒#e1",
+            "text": "订单完成收货后 7 天入账,发生退货或退款时积分同步扣回。"
+          }
+        ]
+      },
+      {
+        "section_id": "member-benefits::会员等级",
+        "evidence": [
+          {
+            "id": "member-benefits::会员等级#e1",
+            "text": "会员分普通、银卡、金卡三档,按累计消费自动升级,升级后立即生效,等级有效期为自然年。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B10",
+    "category": "invoice_type_scope",
+    "review": {
+      "status": "reviewed",
+      "disposition": "partial",
+      "reason": "电子专票的企业资格不能跨用到纸质专票。",
+      "unknown_parts": [
+        {
+          "text": "是否提供纸质专票及资格没有定义。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "expected_answer_points": [
+        {
+          "text": "电子专票仅企业账户，需完整税号、开户行和对公账号。",
+          "evidence_refs": [
+            "billing-shipping::可开票类型#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "billing-shipping::可开票类型",
+        "evidence": [
+          {
+            "id": "billing-shipping::可开票类型#e1",
+            "text": "电子专票仅企业账户可申请,提交时必须填写完整的纳税人识别号、开户行与对公账号,信息不全不予受理。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B11",
+    "category": "paper_invoice_delivery",
+    "review": {
+      "status": "reviewed",
+      "disposition": "partial",
+      "reason": "纸票运费到付、开出后3个工作日内寄出；寄出不等于送达，纸质专票资格未知。",
+      "unknown_parts": [
+        {
+          "text": "纸质发票开出时间和实际到达日没有定义。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "expected_answer_points": [
+        {
+          "text": "纸质发票开出后3个工作日内寄出，实际物流时间另计。",
+          "evidence_refs": [
+            "billing-shipping::开票时效#e1"
+          ]
+        },
+        {
+          "text": "纸票备注邮寄地址、快递费到付，不接受面单改寄。",
+          "evidence_refs": [
+            "billing-shipping::可开票类型#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "billing-shipping::开票时效",
+        "evidence": [
+          {
+            "id": "billing-shipping::开票时效#e1",
+            "text": "纸质发票在开出后 3 个工作日内寄出,物流以实际快递为准。"
+          }
+        ]
+      },
+      {
+        "section_id": "billing-shipping::可开票类型",
+        "evidence": [
+          {
+            "id": "billing-shipping::可开票类型#e1",
+            "text": "纸质发票需在申请时备注邮寄地址,快递费到付,不接受面单改寄。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B12",
+    "category": "refund_handling_vs_arrival",
+    "review": {
+      "status": "reviewed",
+      "disposition": "partial",
+      "reason": "3个工作日是处理时限，到账天数以渠道为准且无具体承诺。",
+      "unknown_parts": [
+        {
+          "text": "实际到账日期不能保证固定天数。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "expected_answer_points": [
+        {
+          "text": "平台核验通过后原路退款，实际到账取决于支付渠道，不承诺具体到账天数。",
+          "evidence_refs": [
+            "returns-policy::无理由退货/退款时效#e1"
+          ]
+        },
+        {
+          "text": "退款首次响应2小时、处理3个工作日；这是处理时限。",
+          "evidence_refs": [
+            "after-sales-manual::常见问题处理时限#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "returns-policy::无理由退货/退款时效",
+        "evidence": [
+          {
+            "id": "returns-policy::无理由退货/退款时效#e1",
+            "text": "退货商品经平台核验通过后,退款原路退回,到账时效以平台售后规则为准。平台不承诺具体到账天数,实际到账时间取决于支付渠道;不要向用户给出「几个工作日到账」这类具体数字。"
+          }
+        ]
+      },
+      {
+        "section_id": "after-sales-manual::常见问题处理时限",
+        "evidence": [
+          {
+            "id": "after-sales-manual::常见问题处理时限#e1",
+            "text": "| 退款 | 2 小时 | 3 个工作日 |"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B13",
+    "category": "return_vs_price_protection_window",
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "无理由退货7天自签收；价保7天自下单，不能互换。",
+      "unknown_parts": [],
+      "expected_answer_points": [
+        {
+          "text": "自签收起7天内，商品完好且不影响二次销售支持无理由退货；定制、生鲜除外。",
+          "evidence_refs": [
+            "returns-policy::无理由退货/适用范围#e1"
+          ]
+        },
+        {
+          "text": "价保自下单7天内，同款降价可申请退差价原路返还。",
+          "evidence_refs": [
+            "product-faq::价格保护怎么申请#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "returns-policy::无理由退货/适用范围",
+        "evidence": [
+          {
+            "id": "returns-policy::无理由退货/适用范围#e1",
+            "text": "自签收之日起 7 天内,商品完好、不影响二次销售的,支持无理由退货。定制类、生鲜类商品除外。本条的 7 天自签收之日起算,只管无理由退货;价保是另一条规则,它的 7 天从下单时间起算。"
+          }
+        ]
+      },
+      {
+        "section_id": "product-faq::价格保护怎么申请",
+        "evidence": [
+          {
+            "id": "product-faq::价格保护怎么申请#e1",
+            "text": "自营商品支持下单后 7 天内价保,期间若同款降价可在「我的订单」-「申请价保」提交,差价将退回原支付渠道。价保的 7 天**自下单时间起算**,不是从签收之日起算;签收之日起 7 天内的那条是无理由退货,两者起算点不同、别混用。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B14",
+    "category": "in_stock_vs_presale_shipping",
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "现货48小时，预售按商品详情页。",
+      "unknown_parts": [],
+      "expected_answer_points": [
+        {
+          "text": "现货付款后48小时内发货，预售以商品详情页时间为准。",
+          "evidence_refs": [
+            "product-faq::发货时效多久#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "product-faq::发货时效多久",
+        "evidence": [
+          {
+            "id": "product-faq::发货时效多久#e1",
+            "text": "现货商品付款后 48 小时内发货,预售商品以商品详情页标注的发货时间为准。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B15",
+    "category": "overseas_delivery_explicit_negative",
+    "review": {
+      "status": "reviewed",
+      "disposition": "explicit_negative",
+      "reason": "海外有明确不配送规则，D30从无依据拒答修正为明确负面事实回答。",
+      "unknown_parts": [],
+      "expected_answer_points": [
+        {
+          "text": "港澳台及海外暂不支持配送。",
+          "evidence_refs": [
+            "billing-shipping::运费与包邮#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "billing-shipping::运费与包邮",
+        "evidence": [
+          {
+            "id": "billing-shipping::运费与包邮#e1",
+            "text": "港澳台及海外暂不支持配送,下单前请确认收货地址在可配送范围内。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B16",
+    "category": "app_offline_model_boundary",
+    "review": {
+      "status": "reviewed",
+      "disposition": "partial",
+      "reason": "App安装和联网能力按型号区分；FD10/Lite不支持App，不能泛化在线步骤。",
+      "unknown_parts": [
+        {
+          "text": "未给出设备型号，需先确认其联网能力。",
+          "evidence_refs": [],
+          "basis": "missing_input"
+        }
+      ],
+      "expected_answer_points": [
+        {
+          "text": "仅明确支持App联网的型号按说明书下载App、扫码添加并连接2.4G Wi-Fi激活；非联网型号依说明操作。",
+          "evidence_refs": [
+            "after-sales-manual::设备安装与激活#e1"
+          ]
+        },
+        {
+          "text": "MH-FD10不含App远程投喂与摄像头。",
+          "evidence_refs": [
+            "product-specs::自动喂食器 基础版(型号 MH-FD10)#e1"
+          ]
+        },
+        {
+          "text": "MH-LP50没有App联网功能。",
+          "evidence_refs": [
+            "product-specs::智能猫砂盆 Lite(型号 MH-LP50)#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "after-sales-manual::设备安装与激活",
+        "evidence": [
+          {
+            "id": "after-sales-manual::设备安装与激活#e1",
+            "text": "规格明确标注支持 App 联网的型号,首次使用需下载「喵喵优选」App,按说明书扫码添加设备并连接 2.4G Wi-Fi 完成激活;非联网型号按各自说明操作,猫爬架等商品按随附图解自行组装。"
+          }
+        ]
+      },
+      {
+        "section_id": "product-specs::自动喂食器 基础版(型号 MH-FD10)",
+        "evidence": [
+          {
+            "id": "product-specs::自动喂食器 基础版(型号 MH-FD10)#e1",
+            "text": "- 说明:基础版不含摄像头与 App 远程投喂"
+          }
+        ]
+      },
+      {
+        "section_id": "product-specs::智能猫砂盆 Lite(型号 MH-LP50)",
+        "evidence": [
+          {
+            "id": "product-specs::智能猫砂盆 Lite(型号 MH-LP50)#e1",
+            "text": "- 核心功能:自动感应清理、物理除臭盖板;不含 App 联网功能"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "case_id": "B17",
+    "category": "cat_bed_outer_cover_core_heated_module",
+    "review": {
+      "status": "reviewed",
+      "disposition": "partial",
+      "reason": "外套可轻柔机洗、内垫不可机洗；加热模块猫窝无对应规格，需澄清型号。",
+      "unknown_parts": [
+        {
+          "text": "带加热模块猫窝没有对应规格，不能沿用普通猫窝洗涤说明。",
+          "evidence_refs": [],
+          "basis": "not_defined_in_canonical_sources"
+        }
+      ],
+      "expected_answer_points": [
+        {
+          "text": "外套拆掉内部垫芯后装洗衣袋，轻柔冷水机洗，阴干不暴晒。",
+          "evidence_refs": [
+            "product-faq::猫窝是否可以机洗#e1"
+          ]
+        },
+        {
+          "text": "内部垫芯不可机洗，只能局部擦洗后晾干。",
+          "evidence_refs": [
+            "product-faq::猫窝是否可以机洗#e2"
+          ]
+        },
+        {
+          "text": "MH-NEST20外套可手洗，内部垫芯不可机洗。",
+          "evidence_refs": [
+            "product-specs::四季保暖猫窝(型号 MH-NEST20)#e1"
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "section_id": "product-faq::猫窝是否可以机洗",
+        "evidence": [
+          {
+            "id": "product-faq::猫窝是否可以机洗#e1",
+            "text": "猫窝外套可以机洗,拆掉内部垫芯后装进洗衣袋,选轻柔模式冷水洗,洗后阴干不要暴晒。"
+          },
+          {
+            "id": "product-faq::猫窝是否可以机洗#e2",
+            "text": "内部垫芯不可机洗,进水后填充物会结块变形,只能局部擦洗后晾干。"
+          }
+        ]
+      },
+      {
+        "section_id": "product-specs::四季保暖猫窝(型号 MH-NEST20)",
+        "evidence": [
+          {
+            "id": "product-specs::四季保暖猫窝(型号 MH-NEST20)#e1",
+            "text": "- 清洗:外套可手洗,内部垫芯不可机洗,详见 FAQ「猫窝是否可以机洗」"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "aliases": [
+    {
+      "question": "邮费是多少？",
+      "section_id": "billing-shipping::运费与包邮",
+      "seed_id": 2,
+      "reason": "The canonical section explicitly states that postage is shipping; this alias lets query_faq match the user's original keyword by SQL LIKE."
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "source_rag_count": 300,
+  "rag_buckets": {
+    "A_policy": 60,
+    "B_model": 60,
+    "C_colloquial": 60,
+    "E_multi": 60,
+    "D_absent": 60
+  },
+  "rag_dispositions": {
+    "positive": 184,
+    "partial": 54,
+    "clarify": 3,
+    "no_evidence": 58,
+    "explicit_negative": 1
+  },
+  "auxiliary_counts": {
+    "extract": 5,
+    "rewrite": 5,
+    "retrieval": 5,
+    "flywheel": 12,
+    "mining": 2,
+    "classification": 64,
+    "classification_dispositions": {
+      "positive": 61,
+      "quarantine": 3
+    },
+    "golden": 30,
+    "supplement": 34,
+    "boundary_cases": 17
+  },
+  "notes": [
+    "The original examples and metadata remain byte-for-byte under legacy/original/samples. Reviewed files are canonical resource-level inputs.",
+    "No complete classifier corpus or model is included; these 64 classification examples do not establish classifier quality.",
+    "History reports and old runtime assets are excluded."
+  ]
+}

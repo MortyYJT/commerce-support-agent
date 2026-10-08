@@ -1,0 +1,2 @@
+# Preserve the exact historical bytes; canonical resources use normalized text.
+src/commerce_support/resources/customer_support/v1/legacy/original/** -text -whitespace

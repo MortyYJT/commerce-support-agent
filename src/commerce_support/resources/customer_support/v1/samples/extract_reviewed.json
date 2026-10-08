@@ -1,0 +1,107 @@
+[
+  {
+    "sample_id": "X01",
+    "source_annotation": {
+      "text": "我上周买的猫爬架,订单号 MH20260701123,到货就散架了,我要退款",
+      "expected": {
+        "order_id": "MH20260701123",
+        "request_type": "退款"
+      }
+    },
+    "current_schema_expected": {
+      "order_id": "MH20260701123",
+      "request_type": "退款",
+      "expected_solution": "商品到货就散架，用户要求退款。"
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "订单号与明确退款诉求均可直接提取。"
+    },
+    "evidence": "我上周买的猫爬架,订单号 MH20260701123,到货就散架了,我要退款"
+  },
+  {
+    "sample_id": "X02",
+    "source_annotation": {
+      "text": "猫粮买错口味了想换成三文鱼味的,单号MH20260705888,能操作吗",
+      "expected": {
+        "order_id": "MH20260705888",
+        "request_type": "换货"
+      }
+    },
+    "current_schema_expected": {
+      "order_id": "MH20260705888",
+      "request_type": "换货",
+      "expected_solution": "猫粮买错口味，希望换成三文鱼味。"
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "订单号与明确换货诉求均可直接提取；不推断换货结果。"
+    },
+    "evidence": "猫粮买错口味了想换成三文鱼味的,单号MH20260705888,能操作吗"
+  },
+  {
+    "sample_id": "X03",
+    "source_annotation": {
+      "text": "自动喂食器用了三天就不出粮了,帮我修一下,订单号忘了回头补",
+      "expected": {
+        "order_id": null,
+        "request_type": "维修"
+      }
+    },
+    "current_schema_expected": {
+      "order_id": null,
+      "request_type": "维修",
+      "expected_solution": "自动喂食器使用三天后不出粮，用户请求维修。"
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "未提供订单号，应保持null；“帮我修一下”对应维修诉求。"
+    },
+    "evidence": "自动喂食器用了三天就不出粮了,帮我修一下,订单号忘了回头补"
+  },
+  {
+    "sample_id": "X04",
+    "source_annotation": {
+      "text": "你们家快递员态度太差了,把箱子扔门口就走,我要投诉他",
+      "expected": {
+        "order_id": null,
+        "request_type": "投诉"
+      }
+    },
+    "current_schema_expected": {
+      "order_id": null,
+      "request_type": "其他",
+      "expected_solution": "用户投诉快递员态度差，并描述其将箱子放在门口。"
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "旧标注投诉保留用于审计；当前Schema没有投诉枚举，映射为其他，期望方案保留投诉意图。"
+    },
+    "evidence": "你们家快递员态度太差了,把箱子扔门口就走,我要投诉他"
+  },
+  {
+    "sample_id": "X05",
+    "source_annotation": {
+      "text": "东西收到了,就是想问问后续保养要注意啥",
+      "expected": {
+        "order_id": null,
+        "request_type": "其他"
+      }
+    },
+    "current_schema_expected": {
+      "order_id": null,
+      "request_type": "其他",
+      "expected_solution": "用户询问商品后续保养注意事项。"
+    },
+    "review": {
+      "status": "reviewed",
+      "disposition": "positive",
+      "reason": "问题是询问保养注意事项，不属于退款、换货、维修或投诉，归其他。"
+    },
+    "evidence": "东西收到了,就是想问问后续保养要注意啥"
+  }
+]
