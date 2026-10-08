@@ -24,7 +24,7 @@ The reviewed RAG, extraction, retrieval, rewrite, classification, mining, and bo
 .venv/bin/python scripts/validate_customer_support_resources.py
 ~~~
 
-The active evaluation file contains nine cases, including the migrated return window, a successful postage query, and a genuinely unknown FAQ query that should remain `not_found`. The saved eight-case results above predate this resource migration and do not verify the current resource-derived FAQ behavior. Run the live evaluator again and review its actual tool results before treating the migrated prompt set as runtime evidence.
+The active evaluation file contains nine cases, including the migrated return window, a successful postage query, and a genuinely unknown FAQ query that should remain `not_found`. The saved eight-case results above predate this resource migration and do not verify the current resource-derived FAQ behavior. On 2026-10-08, the migrated package passed 116 offline tests, 21 real MySQL integration tests, resource validation, and local Docker checks. The final nine-case real-model run passed all deterministic checks; independent manual answer review accepted eight of nine responses. The logistics demo returned `estimated_days=0`, but the model reported the estimate as unavailable; this remains an answer-quality limitation. Current return and shipping answers, unknown-FAQ behavior, and persisted ticket creation were verified. The original 52 conversations, 222 messages, and five tickets retained identical content hashes. See [migration verification](note/resource-reuse/verification.md) and [development record](note/resource-reuse/audit.md) for current evidence and reproduction commands.
 
 ## Local Docker setup
 
