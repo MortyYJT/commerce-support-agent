@@ -18,13 +18,13 @@ evaluate_live_prompts = importlib.util.module_from_spec(_EVALUATOR_SPEC)
 _EVALUATOR_SPEC.loader.exec_module(evaluate_live_prompts)
 
 _POSTAGE_CASE = {
-    "case_id": "postage_no_match",
-    "category": "expected_no_match",
+    "case_id": "postage_success",
+    "category": "required",
     "user_message": "邮费是多少？",
     "expected_tool": "query_faq",
     "expected_arguments": {"keyword": "邮费"},
 }
-_ANSWER = "没有找到包含“邮费”的 FAQ。"
+_ANSWER = "订单金额满99元包邮；未满99元收取10元基础运费，偏远地区另加12元。"
 _STORED = {
     "tool_calls": [
         {
@@ -34,7 +34,19 @@ _STORED = {
             "type": "tool_call",
         }
     ],
-    "tool_results": [{"status": "not_found", "data": []}],
+    "tool_results": [
+        {
+            "status": "success",
+            "data": [
+                {
+                    "id": 2,
+                    "question": "邮费是多少？",
+                    "answer": _ANSWER,
+                    "category": "shipping",
+                }
+            ],
+        }
+    ],
     "ticket_results": [],
     "final_answer": _ANSWER,
 }
@@ -43,18 +55,29 @@ _STORED = {
 def _replay(
     *,
     keyword: str = "邮费",
-    row_count: int = 0,
+    row_count: int = 1,
+    rows: list[dict[str, Any]] | None = None,
     query: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if query is None:
         query = {
             "statement": "SELECT id FROM faq WHERE question LIKE concat('%%', %s, '%%')",
-            "bound_parameters": ["邮费", 5],
+            "bound_parameters": [keyword, 5],
         }
+    if rows is None:
+        rows = [
+            {
+                "id": 2,
+                "question": "邮费是多少？",
+                "answer": _ANSWER,
+                "category": "shipping",
+            }
+        ][:row_count]
     return {
         "source": "live replay of FAQRepository.search_literal",
         "keyword": keyword,
         "row_count": row_count,
+        "rows": rows,
         "query": query,
     }
 
@@ -126,7 +149,7 @@ def _run_postage_evaluation(monkeypatch, capsys, replay: dict[str, Any]):
     return exit_code, json.loads(output_lines[0])
 
 
-def test_consistent_postage_sql_replay_is_recorded_as_passing(monkeypatch, capsys) -> None:
+def test_postage_policy_and_sql_replay_hit_are_recorded_as_passing(monkeypatch, capsys) -> None:
     replay = _replay()
 
     exit_code, evaluated = _run_postage_evaluation(monkeypatch, capsys, replay)
@@ -135,8 +158,12 @@ def test_consistent_postage_sql_replay_is_recorded_as_passing(monkeypatch, capsy
     assert evaluated["deterministic_checks_pass"] is True
     assert evaluated["checks"].get("faq_sql_replay_query_captured") is True
     assert evaluated["checks"].get("faq_sql_replay_keyword_matches_expected") is True
-    assert evaluated["checks"].get("faq_sql_replay_returns_zero_rows") is True
-    assert evaluated["actual_tool_result"] == {"status": "not_found", "data": []}
+    assert evaluated["checks"].get("faq_sql_replay_returns_expected_rows") is True
+    assert evaluated["actual_tool_result"]["status"] == "success"
+    assert "99元" in evaluated["final_answer"]
+    assert "10元" in evaluated["final_answer"]
+    assert "12元" in evaluated["final_answer"]
+    assert "澳元" not in evaluated["final_answer"]
     assert evaluated["faq_sql_replay"] == replay
 
 
@@ -144,9 +171,23 @@ def test_consistent_postage_sql_replay_is_recorded_as_passing(monkeypatch, capsy
     ("replay", "failed_check"),
     [
         pytest.param(
-            _replay(row_count=1),
-            "faq_sql_replay_returns_zero_rows",
-            id="replay-returned-rows",
+            _replay(row_count=0, rows=[]),
+            "faq_sql_replay_returns_expected_rows",
+            id="replay-returned-no-rows",
+        ),
+        pytest.param(
+            _replay(
+                rows=[
+                    {
+                        "id": 4,
+                        "question": "运费怎么算？",
+                        "answer": _ANSWER,
+                        "category": "shipping",
+                    }
+                ],
+            ),
+            "faq_sql_replay_returns_expected_rows",
+            id="replay-row-does-not-match-original-keyword",
         ),
         pytest.param(
             {
@@ -168,6 +209,16 @@ def test_consistent_postage_sql_replay_is_recorded_as_passing(monkeypatch, capsy
             "faq_sql_replay_keyword_matches_expected",
             id="replay-used-a-different-keyword",
         ),
+        pytest.param(
+            _replay(
+                query={
+                    "statement": "SELECT id FROM faq WHERE question LIKE %s",
+                    "bound_parameters": ["邮费"],
+                },
+            ),
+            "faq_sql_replay_limit_is_five",
+            id="replay-did-not-bind-five-row-limit",
+        ),
     ],
 )
 def test_inconsistent_postage_sql_replay_fails_the_evaluation(
@@ -181,3 +232,95 @@ def test_inconsistent_postage_sql_replay_fails_the_evaluation(
     assert exit_code == 1
     assert evaluated["deterministic_checks_pass"] is False
     assert evaluated["checks"].get(failed_check) is False
+
+
+def test_unknown_faq_case_keeps_not_found_behavior_and_original_keyword() -> None:
+    case = {
+        "case_id": "unknown_faq_no_match",
+        "category": "expected_no_match",
+        "user_message": "运费险理赔多久到账？",
+        "expected_tool": "query_faq",
+        "expected_arguments": {"keyword": "运费险"},
+    }
+    stored = {
+        "tool_calls": [
+            {"name": "query_faq", "args": {"keyword": "运费险"}, "id": "call-unknown"}
+        ],
+        "tool_results": [{"status": "not_found", "data": []}],
+        "ticket_results": [],
+        "final_answer": "没有找到包含“运费险”的 FAQ。",
+    }
+    replay = _replay(keyword="运费险", row_count=0, rows=[])
+    evaluated = evaluate_live_prompts._evaluate_case(
+        case,
+        [("done", {"finish_reason": "stop"})],
+        stored,
+        evidence_mode="live_api_real_tools",
+    )
+
+    evaluate_live_prompts._apply_postage_sql_replay_checks(
+        evaluated, replay, "运费险", expect_hit=False
+    )
+
+    assert evaluated["checks"]["actual_faq_query_returned_zero_rows"] is True
+    assert evaluated["checks"]["faq_sql_replay_returns_zero_rows"] is True
+    assert evaluated["deterministic_checks_pass"] is True
+
+
+def test_active_cases_encode_migrated_faq_policy_and_a_real_unknown_query() -> None:
+    from commerce_support.resources.customer_support.loader import load_faq_seed_rows
+
+    cases = {case["case_id"]: case for case in evaluate_live_prompts._load_cases()}
+    return_answer = cases["return_policy"]["tool_result"]["data"][0]["answer"].replace(" ", "")
+    postage_case = cases["postage_success"]
+    postage_answer = postage_case["tool_result"]["data"][0]["answer"].replace(" ", "")
+    unknown_keyword = cases["unknown_faq_no_match"]["expected_arguments"]["keyword"]
+
+    assert "7天从签收之日起算" in return_answer and "30天" not in return_answer
+    assert all(f"{amount}元" in postage_answer for amount in ("99", "10", "12"))
+    assert postage_case["expected_arguments"]["keyword"] == "邮费"
+    assert "邮费" in postage_case["tool_result"]["data"][0]["question"]
+    assert unknown_keyword == "运费险"
+    assert all(unknown_keyword not in row["question"] for row in load_faq_seed_rows())
+
+
+@pytest.mark.parametrize(
+    ("result_answer", "final_answer", "should_pass"),
+    [
+        pytest.param("7 天内支持无理由退货，7 天从签收之日起算。", "7 天从签收之日起算。", True, id="seven-days"),
+        pytest.param("符合条件的商品可在签收后 30 天内申请退货。", "30 天内可以申请。", False, id="stale-thirty-days"),
+    ],
+)
+def test_return_policy_eval_rejects_stale_window(
+    result_answer: str,
+    final_answer: str,
+    should_pass: bool,
+) -> None:
+    case = {
+        "case_id": "return_policy",
+        "user_message": "退货政策是什么？",
+        "expected_tool": "query_faq",
+        "expected_arguments": {"keyword": "退货政策"},
+    }
+    stored = {
+        "tool_calls": [
+            {"name": "query_faq", "args": {"keyword": "退货政策"}, "id": "call-return"}
+        ],
+        "tool_results": [
+            {
+                "status": "success",
+                "data": [{"question": "退货政策是什么？", "answer": result_answer}],
+            }
+        ],
+        "ticket_results": [],
+        "final_answer": final_answer,
+    }
+
+    evaluated = evaluate_live_prompts._evaluate_case(
+        case,
+        [("done", {"finish_reason": "stop"})],
+        stored,
+        evidence_mode="live_api_real_tools",
+    )
+
+    assert evaluated["deterministic_checks_pass"] is should_pass

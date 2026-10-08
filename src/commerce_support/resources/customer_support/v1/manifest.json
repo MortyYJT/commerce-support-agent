@@ -143,7 +143,7 @@
     "samples/retrieval_reviewed.json": "3542f1b827e7fd25d5467ed1205368ec6ecbc9418ebf327dc16c30ac126fe554",
     "samples/rewrite_reviewed.jsonl": "46fe5f908a61c28cb3910d6764e37403fcb633146ca8cbda04c1cf8173f4ffcb",
     "samples/source_index.json": "acce6dcb6b94c5bca58495cd6e6c73b33d8ef6dab1f7d4c5c03dc2a141471fdc",
-    "sections.json": "9e5b0749b0d9b2e676cbe9bc99bb7dbbe5be26c2fad695d0a238fe713fd6d01c",
+    "sections.json": "5cb50c0bc68bd8d45e58b132f5f94bbeb6bbd70a78f5491b6d45a3e3c7b08eb4",
     "taxonomy.json": "5a756486cfd0439c600e1e546b180a2dd5e6a9c962c9f34f4a322f909950cd36"
   }
 }

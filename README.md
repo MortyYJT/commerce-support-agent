@@ -12,6 +12,20 @@ On 2026-10-07, the final-stream protocol fix passed 78 offline tests, 21 real My
 
 Final streaming rejects unexpected tool-call fragments and closes the provider response with bounded cancellation protection. It reuses the configured ChatOpenAI client and its private `_get_request_payload` builder, bypassing LangChain's streaming callback/conversion layer. Dependency upgrades must revalidate outgoing payloads, malformed tool history, and response closure.
 
+## Customer-support resource package
+
+The packaged source of current FAQ and customer-support facts is `src/commerce_support/resources/customer_support/v1/`. Its canonical Markdown, section catalog, aliases, and reviewed sample files are the current resource inputs. The package README describes source provenance, revisions, sample scope, and known unknowns. Archived source bytes are retained only for audit; they are not current FAQ, retrieval, training, or evaluation inputs.
+
+FAQ seed rows are generated from canonical sections and the explicit `邮费` question alias. Runtime lookup still uses the user's exact keyword with the existing SQL `LIKE` query and five-row limit; it does not apply automatic synonyms. The migrated shipping policy is 99 CNY free shipping, 10 CNY base shipping below the threshold, and a separate 12 CNY remote-area surcharge that does not participate in free shipping. Seed initialization upgrades only recognized legacy FAQ rows, preserves custom FAQ and historical conversation data, and fails on unknown managed-ID or question collisions.
+
+The reviewed RAG, extraction, retrieval, rewrite, classification, mining, and boundary records are resource-level reviewed data. They do not establish model recall, classifier quality, or extraction accuracy. Structured extraction examples are intended for later evaluation against the current schema; this repository does not expose an active extraction endpoint. Validate the installed package and its resource hashes with:
+
+~~~bash
+.venv/bin/python scripts/validate_customer_support_resources.py
+~~~
+
+The active evaluation file contains nine cases, including the migrated return window, a successful postage query, and a genuinely unknown FAQ query that should remain `not_found`. The saved eight-case results above predate this resource migration and do not verify the current resource-derived FAQ behavior. Run the live evaluator again and review its actual tool results before treating the migrated prompt set as runtime evidence.
+
 ## Local Docker setup
 
 Docker Compose starts MySQL, runs the repeatable database initializer, and then starts the API. MySQL data uses the named `mysql_data` volume. The API is exposed only on `127.0.0.1:8001`; MySQL is exposed only on `127.0.0.1:3307`.
@@ -78,7 +92,7 @@ Compose sets `INPUT_TOKEN_BUDGET=6144` by default. The estimator conservatively 
 
 ## Evaluation
 
-Run the eight labeled live-model cases against the started app and inspect actual persisted tool calls/results. The tool-failure case is explicitly marked as a failure-injection example; its synthetic error must never be reported as a real tool result.
+Run the active labeled live-model cases against the started app and inspect actual persisted tool calls/results. The tool-failure case is explicitly marked as a failure-injection example; its synthetic error must never be reported as a real tool result.
 
 ~~~bash
 .venv/bin/python scripts/evaluate_live_prompts.py --base-url http://127.0.0.1:8001

@@ -132,14 +132,92 @@ def test_seed_is_idempotent(mysql_database: MySQLHandle) -> None:
     loop = mysql_database.loop
 
     async def run() -> None:
+        from commerce_support.database.models import FAQ, Conversation, Message, Ticket
+        from commerce_support.resources.customer_support.loader import load_faq_seed_catalog
+
         database = await _new_database(mysql_database)
         await _initialize(database)
-        counts_after_first_seed = await _table_counts(database)
+
+        catalog = load_faq_seed_catalog()
+        legacy_rows = {row["id"]: row for row in catalog.known_prior_rows[1]}
+        legacy_rows.update({row["id"]: row for row in catalog.known_prior_rows[2]})
+        custom_conversation_id = str(uuid4())
+        custom_turn_id = str(uuid4())
+        custom_ticket_id = f"TEST-{uuid4().hex[:12]}"
+        custom_faq_id = 800_000 + int(uuid4().hex[:6], 16)
+        custom_faq = FAQ(
+            id=custom_faq_id,
+            question=f"Custom integration FAQ {uuid4().hex}",
+            answer="Keep this custom FAQ.",
+            category="integration",
+        )
+        async with database.sessions.begin() as session:
+            for row_id, legacy in legacy_rows.items():
+                seeded = await session.get(FAQ, row_id)
+                assert seeded is not None
+                seeded.question = legacy["question"]
+                seeded.answer = legacy["answer"]
+                seeded.category = legacy["category"]
+            session.add(custom_faq)
+            session.add(
+                Conversation(
+                    id=custom_conversation_id,
+                    user_id="integration-test",
+                    status="idle",
+                    active_turn_id=None,
+                    active_until=None,
+                )
+            )
+            session.add(
+                Message(
+                    conversation_id=custom_conversation_id,
+                    turn_id=custom_turn_id,
+                    role="user",
+                    content="Keep this historical message.",
+                    turn_status="completed",
+                )
+            )
+            session.add(
+                Ticket(
+                    ticket_id=custom_ticket_id,
+                    conversation_id=custom_conversation_id,
+                    turn_id=custom_turn_id,
+                    tool_call_id=f"call-{uuid4().hex}",
+                    description="Keep this custom ticket.",
+                    ticket_type="other",
+                    status="open",
+                )
+            )
+
+        counts_before_second_seed = await _table_counts(database)
 
         await _initialize(database)
         counts_after_second_seed = await _table_counts(database)
 
-        assert counts_after_second_seed == counts_after_first_seed
+        assert counts_after_second_seed == counts_before_second_seed
+        async with database.sessions() as session:
+            return_faq = await session.get(FAQ, 1)
+            postage_faq = await session.get(FAQ, 2)
+            preserved_faq = await session.get(FAQ, custom_faq_id)
+            preserved_conversation = await session.get(Conversation, custom_conversation_id)
+            preserved_message = await session.scalar(
+                select(Message).where(
+                    Message.conversation_id == custom_conversation_id,
+                    Message.turn_id == custom_turn_id,
+                )
+            )
+            preserved_ticket = await session.get(Ticket, custom_ticket_id)
+
+        assert return_faq is not None and "7 天" in return_faq.answer
+        assert "30天" not in return_faq.answer
+        assert postage_faq is not None and "10 元" in postage_faq.answer
+        assert "12 元" in postage_faq.answer
+        assert preserved_faq is not None and preserved_faq.answer == "Keep this custom FAQ."
+        assert preserved_conversation is not None
+        assert preserved_message is not None
+        assert preserved_message.content == "Keep this historical message."
+        assert preserved_ticket is not None
+        assert preserved_ticket.description == "Keep this custom ticket."
 
     loop.run_until_complete(run())
 

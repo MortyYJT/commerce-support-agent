@@ -157,7 +157,7 @@ def test_ticket_commit_then_timeout_reuses_number(mysql_database: MySQLHandle) -
     loop.run_until_complete(run())
 
 
-def test_faq_like_wildcards_are_literal_and_postage_stays_not_found(
+def test_faq_like_wildcards_are_literal_postage_hits_and_unknown_stays_not_found(
     mysql_database: MySQLHandle,
 ) -> None:
     loop = mysql_database.loop
@@ -213,7 +213,36 @@ def test_faq_like_wildcards_are_literal_and_postage_stays_not_found(
                 "type": "tool_call",
             }
         )
-        assert postage_result.status == "not_found"
-        assert postage_result.data == []
+        assert postage_result.status == "success"
+        assert isinstance(postage_result.data, list)
+        postage_row = next(
+            row for row in postage_result.data if "邮费" in row["question"]
+        )
+        postage_answer = postage_row["answer"].replace(" ", "")
+        assert all(f"{amount}元" in postage_answer for amount in ("99", "10", "12"))
+        assert len(postage_result.data) <= 5
+
+        unknown_ctx = TurnContext(
+            conversation_id=str(uuid4()),
+            turn_id=str(uuid4()),
+            user_message="运费险理赔多久到账？",
+        )
+        unknown_registry = build_registry(
+            repository=object(),
+            faq=faq_repository,
+            tickets=object(),
+            ctx=unknown_ctx,
+            rng=random.Random(12),
+        )
+        unknown_result = await unknown_registry["query_faq"].ainvoke(
+            {
+                "name": "query_faq",
+                "args": {"keyword": "运费险"},
+                "id": "faq-unknown-call",
+                "type": "tool_call",
+            }
+        )
+        assert unknown_result.status == "not_found"
+        assert unknown_result.data == []
 
     loop.run_until_complete(run())

@@ -901,8 +901,8 @@
         "发票如何开具"
       ],
       "heading_level": 2,
-      "content_chars": 42,
-      "content_sha256": "d48537de80ab8d4601c711fb1db8df6be77356fe51264fb49313b93dd2dd8bdc",
+      "content_chars": 58,
+      "content_sha256": "b66d502592f41817ae9a42b6b1fffc78bdde9f45d4f5ee2ecb400b911693c26c",
       "faq_candidate": true
     },
     {
@@ -1620,8 +1620,8 @@
         "发票如何开具"
       ],
       "heading_level": 2,
-      "content_chars": 42,
-      "content_sha256": "d48537de80ab8d4601c711fb1db8df6be77356fe51264fb49313b93dd2dd8bdc",
+      "content_chars": 58,
+      "content_sha256": "b66d502592f41817ae9a42b6b1fffc78bdde9f45d4f5ee2ecb400b911693c26c",
       "faq_candidate": true
     },
     {

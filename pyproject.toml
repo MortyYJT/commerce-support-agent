@@ -33,7 +33,17 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-commerce_support = ["static/*"]
+commerce_support = [
+  "static/*",
+  "resources/customer_support/v1/*.json",
+  "resources/customer_support/v1/*.md",
+  "resources/customer_support/v1/knowledge/*.md",
+  "resources/customer_support/v1/samples/*.json",
+  "resources/customer_support/v1/samples/*.jsonl",
+  "resources/customer_support/v1/legacy/original/knowledge/*",
+  "resources/customer_support/v1/legacy/original/samples/*",
+  "resources/customer_support/v1/legacy/original/taxonomy_source.txt",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

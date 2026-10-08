@@ -259,6 +259,7 @@ async def _faq_sql_replay(database: Database, keyword: str) -> dict[str, Any]:
         "source": "live replay of FAQRepository.search_literal",
         "keyword": keyword,
         "row_count": len(rows),
+        "rows": rows,
         "query": captured[-1] if captured else None,
     }
 
@@ -305,7 +306,33 @@ def _evaluate_case(
         "one_completed_response": done and bool(answer) and not errors,
     }
 
-    if case.get("case_id") == "postage_no_match":
+    if case.get("case_id") == "postage_success":
+        result_data = result.get("data") if isinstance(result, dict) else None
+        checks["original_faq_keyword_preserved"] = (
+            isinstance(actual_arguments, dict)
+            and actual_arguments.get("keyword") == expected_arguments.get("keyword")
+            and expected_arguments.get("keyword") in case["user_message"]
+        )
+        matching_rows = (
+            [
+                row
+                for row in result_data
+                if isinstance(row, dict)
+                and isinstance(row.get("question"), str)
+                and expected_arguments.get("keyword") in row["question"]
+            ]
+            if isinstance(result_data, list)
+            else []
+        )
+        checks["actual_faq_query_returned_expected_rows"] = (
+            result_status == "success" and bool(matching_rows) and len(result_data) <= 5
+        )
+        normalized_answer = "".join(answer.split())
+        checks["final_answer_uses_current_fee_policy"] = all(
+            value in normalized_answer for value in ("99元", "10元", "12元")
+        ) and not any(value in normalized_answer for value in ("8澳元", "AUD"))
+
+    if case.get("case_id") == "unknown_faq_no_match":
         result_data = result.get("data") if isinstance(result, dict) else None
         checks["original_faq_keyword_preserved"] = (
             isinstance(actual_arguments, dict)
@@ -315,8 +342,9 @@ def _evaluate_case(
         checks["actual_faq_query_returned_zero_rows"] = (
             result_status == "not_found" and result_data == []
         )
-        checks["final_answer_did_not_substitute_shipping_fee"] = (
-            "邮费" in answer and "运费" not in answer and "8澳元" not in answer and "8 澳元" not in answer
+        checks["final_answer_keeps_unknown_faq_behavior"] = (
+            expected_arguments.get("keyword") in answer
+            and not any(value in answer for value in ("99元", "10元", "12元"))
         )
 
     if case.get("case_id") == "return_policy":
@@ -324,7 +352,17 @@ def _evaluate_case(
         checks["faq_result_contains_policy"] = (
             result_status == "success"
             and isinstance(result_data, list)
-            and any("退货政策" in str(row.get("question", "")) for row in result_data)
+            and any(
+                "退货政策" in str(row.get("question", ""))
+                and "7天" in str(row.get("answer", "")).replace(" ", "")
+                and "7天从签收之日起算" in str(row.get("answer", "")).replace(" ", "")
+                and "30天" not in str(row.get("answer", "")).replace(" ", "")
+                for row in result_data
+            )
+        )
+        checks["final_answer_uses_current_return_window"] = (
+            "7天从签收之日起算" in answer.replace(" ", "")
+            and "30天" not in answer.replace(" ", "")
         )
 
     if case.get("case_id") == "logistics_1001":
@@ -390,6 +428,8 @@ def _apply_postage_sql_replay_checks(
     evaluated: dict[str, Any],
     replay: dict[str, Any] | None,
     expected_keyword: object,
+    *,
+    expect_hit: bool = True,
 ) -> None:
     replay = replay if isinstance(replay, dict) else None
     query = replay.get("query") if replay is not None else None
@@ -413,17 +453,42 @@ def _apply_postage_sql_replay_checks(
         and query_captured
         and any(value == expected_keyword for value in parameters)
     )
+    limit_is_five = (
+        isinstance(parameters, (list, tuple))
+        and any(value == 5 and not isinstance(value, bool) for value in parameters)
+    )
     row_count = replay.get("row_count") if replay is not None else None
     zero_rows = (
         isinstance(row_count, int)
         and not isinstance(row_count, bool)
         and row_count == 0
     )
+    rows = replay.get("rows") if replay is not None else None
+    rows_are_valid = isinstance(rows, list) and len(rows) == row_count and len(rows) <= 5
+    if expect_hit:
+        hit_rows = (
+            [
+                row
+                for row in rows
+                if isinstance(row, dict)
+                and isinstance(row.get("question"), str)
+                and isinstance(expected_keyword, str)
+                and expected_keyword in row["question"]
+            ]
+            if isinstance(rows, list)
+            else []
+        )
+        replay_verdict = rows_are_valid and bool(hit_rows)
+        verdict_name = "faq_sql_replay_returns_expected_rows"
+    else:
+        replay_verdict = zero_rows and rows_are_valid and rows == []
+        verdict_name = "faq_sql_replay_returns_zero_rows"
 
     evaluated["faq_sql_replay"] = replay
     evaluated["checks"]["faq_sql_replay_query_captured"] = query_captured
     evaluated["checks"]["faq_sql_replay_keyword_matches_expected"] = keyword_matches
-    evaluated["checks"]["faq_sql_replay_returns_zero_rows"] = zero_rows
+    evaluated["checks"]["faq_sql_replay_limit_is_five"] = limit_is_five
+    evaluated["checks"][verdict_name] = replay_verdict
     evaluated["deterministic_checks_pass"] = all(
         value is True for value in evaluated["checks"].values()
     )
@@ -512,7 +577,7 @@ async def _evaluate(args: argparse.Namespace) -> int:
                         )
                 if stored is not None:
                     evaluated["conversation_id"] = conversation_id
-                    if case.get("case_id") == "postage_no_match":
+                    if case.get("case_id") in {"postage_success", "unknown_faq_no_match"}:
                         arguments = evaluated.get("actual_arguments")
                         keyword = arguments.get("keyword") if isinstance(arguments, dict) else None
                         expected_arguments = case.get("expected_arguments")
@@ -530,6 +595,7 @@ async def _evaluate(args: argparse.Namespace) -> int:
                             evaluated,
                             replay,
                             expected_keyword,
+                            expect_hit=case.get("case_id") == "postage_success",
                         )
                     if case.get("case_id") == "create_return_ticket":
                         persisted_tickets = await _read_persisted_tickets(
