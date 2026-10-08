@@ -101,7 +101,10 @@ def build_registry(
         args_schema=CreateTicketArgs,
         description=(
             "Create a support ticket for the current server-side conversation. "
-            "The conversation and tool call identity are supplied by the server."
+            "The conversation and tool call identity are supplied by the server. "
+            "When the user explicitly requests a ticket and the issue type is clear from their message, "
+            "call this tool immediately; do not ask for confirmation, an order number, or a product "
+            "lookup. Ask a follow-up only if the issue description or ticket type cannot be determined."
         ),
     )
     async def create_ticket(

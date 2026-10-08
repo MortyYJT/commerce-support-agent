@@ -136,6 +136,50 @@ def _message_text(content: Any) -> str:
     return ""
 
 
+def _normalized_policy_text(text: str) -> str:
+    return "".join(character for character in text if not character.isspace() and character not in "*_`~")
+
+
+def _states_current_return_window(text: str) -> bool:
+    normalized = _normalized_policy_text(text)
+    if any(
+        marker in normalized
+        for marker in ("30天", "从下单", "自下单", "下单后", "下单之日", "订单之日")
+    ):
+        return False
+    receipt_clock = any(
+        marker in normalized
+        for marker in ("从签收之日", "自签收之日", "签收之日起", "签收后")
+    )
+    return "7天" in normalized and receipt_clock
+
+
+def _unknown_faq_keyword_is_valid(
+    case: dict[str, Any], actual_arguments: object
+) -> bool:
+    expected_arguments = case.get("expected_arguments")
+    expected_topic = (
+        expected_arguments.get("keyword")
+        if isinstance(expected_arguments, dict)
+        else None
+    )
+    actual_keyword = (
+        actual_arguments.get("keyword")
+        if isinstance(actual_arguments, dict)
+        else None
+    )
+    user_message = case.get("user_message")
+    return (
+        isinstance(expected_topic, str)
+        and bool(expected_topic)
+        and isinstance(actual_keyword, str)
+        and bool(actual_keyword)
+        and expected_topic in actual_keyword
+        and isinstance(user_message, str)
+        and actual_keyword in user_message
+    )
+
+
 def _stored_observation(messages: list[Any]) -> dict[str, Any]:
     calls = _tool_calls(messages)
     tool_messages = [message for message in messages if isinstance(message, ToolMessage)]
@@ -293,6 +337,8 @@ def _evaluate_case(
                 and isinstance(actual_arguments.get("description"), str)
                 and bool(actual_arguments["description"].strip())
             )
+        elif expected_tool == "query_faq" and case.get("case_id") == "unknown_faq_no_match":
+            arguments_match = _unknown_faq_keyword_is_valid(case, actual_arguments)
         else:
             arguments_match = all(
                 actual_arguments.get(key) == value for key, value in expected_arguments.items()
@@ -334,10 +380,8 @@ def _evaluate_case(
 
     if case.get("case_id") == "unknown_faq_no_match":
         result_data = result.get("data") if isinstance(result, dict) else None
-        checks["original_faq_keyword_preserved"] = (
-            isinstance(actual_arguments, dict)
-            and actual_arguments.get("keyword") == expected_arguments.get("keyword")
-            and expected_arguments.get("keyword") in case["user_message"]
+        checks["original_faq_keyword_preserved"] = _unknown_faq_keyword_is_valid(
+            case, actual_arguments
         )
         checks["actual_faq_query_returned_zero_rows"] = (
             result_status == "not_found" and result_data == []
@@ -354,15 +398,12 @@ def _evaluate_case(
             and isinstance(result_data, list)
             and any(
                 "退货政策" in str(row.get("question", ""))
-                and "7天" in str(row.get("answer", "")).replace(" ", "")
-                and "7天从签收之日起算" in str(row.get("answer", "")).replace(" ", "")
-                and "30天" not in str(row.get("answer", "")).replace(" ", "")
+                and _states_current_return_window(str(row.get("answer", "")))
                 for row in result_data
             )
         )
         checks["final_answer_uses_current_return_window"] = (
-            "7天从签收之日起算" in answer.replace(" ", "")
-            and "30天" not in answer.replace(" ", "")
+            _states_current_return_window(answer)
         )
 
     if case.get("case_id") == "logistics_1001":
@@ -430,6 +471,8 @@ def _apply_postage_sql_replay_checks(
     expected_keyword: object,
     *,
     expect_hit: bool = True,
+    actual_keyword: object = None,
+    user_message: object = None,
 ) -> None:
     replay = replay if isinstance(replay, dict) else None
     query = replay.get("query") if replay is not None else None
@@ -446,13 +489,28 @@ def _apply_postage_sql_replay_checks(
         and " like " in f" {normalized_statement} "
         and isinstance(parameters, (list, tuple))
     )
-    keyword_matches = (
-        isinstance(expected_keyword, str)
-        and replay is not None
-        and replay.get("keyword") == expected_keyword
-        and query_captured
-        and any(value == expected_keyword for value in parameters)
-    )
+    if expect_hit:
+        keyword_check_name = "faq_sql_replay_keyword_matches_expected"
+        keyword_matches = (
+            isinstance(expected_keyword, str)
+            and replay is not None
+            and replay.get("keyword") == expected_keyword
+            and query_captured
+            and any(value == expected_keyword for value in parameters)
+        )
+    else:
+        keyword_check_name = "faq_sql_replay_keyword_matches_actual_call"
+        keyword_matches = (
+            isinstance(expected_keyword, str)
+            and isinstance(actual_keyword, str)
+            and expected_keyword in actual_keyword
+            and isinstance(user_message, str)
+            and actual_keyword in user_message
+            and replay is not None
+            and replay.get("keyword") == actual_keyword
+            and query_captured
+            and any(value == actual_keyword for value in parameters)
+        )
     limit_is_five = (
         isinstance(parameters, (list, tuple))
         and any(value == 5 and not isinstance(value, bool) for value in parameters)
@@ -486,7 +544,7 @@ def _apply_postage_sql_replay_checks(
 
     evaluated["faq_sql_replay"] = replay
     evaluated["checks"]["faq_sql_replay_query_captured"] = query_captured
-    evaluated["checks"]["faq_sql_replay_keyword_matches_expected"] = keyword_matches
+    evaluated["checks"][keyword_check_name] = keyword_matches
     evaluated["checks"]["faq_sql_replay_limit_is_five"] = limit_is_five
     evaluated["checks"][verdict_name] = replay_verdict
     evaluated["deterministic_checks_pass"] = all(
@@ -596,6 +654,8 @@ async def _evaluate(args: argparse.Namespace) -> int:
                             replay,
                             expected_keyword,
                             expect_hit=case.get("case_id") == "postage_success",
+                            actual_keyword=keyword,
+                            user_message=case.get("user_message"),
                         )
                     if case.get("case_id") == "create_return_ticket":
                         persisted_tickets = await _read_persisted_tickets(

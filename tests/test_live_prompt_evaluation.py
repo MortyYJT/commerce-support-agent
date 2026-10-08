@@ -234,7 +234,41 @@ def test_inconsistent_postage_sql_replay_fails_the_evaluation(
     assert evaluated["checks"].get(failed_check) is False
 
 
-def test_unknown_faq_case_keeps_not_found_behavior_and_original_keyword() -> None:
+@pytest.mark.parametrize(
+    ("actual_keyword", "replay_keyword", "keyword_is_valid", "should_pass"),
+    [
+        pytest.param(
+            "运费险理赔多久到账",
+            "运费险理赔多久到账",
+            True,
+            True,
+            id="long-original-substring-keeps-labeled-topic",
+        ),
+        pytest.param(
+            "运费", "运费", False, False, id="does-not-preserve-labeled-topic"
+        ),
+        pytest.param(
+            "运费险理赔时限",
+            "运费险理赔时限",
+            False,
+            False,
+            id="keyword-is-not-in-user-message",
+        ),
+        pytest.param(
+            "运费险理赔多久到账",
+            "运费险",
+            True,
+            False,
+            id="sql-replay-does-not-match-actual-call",
+        ),
+    ],
+)
+def test_unknown_faq_case_requires_topic_preserving_substring_and_matching_replay(
+    actual_keyword: str,
+    replay_keyword: str,
+    keyword_is_valid: bool,
+    should_pass: bool,
+) -> None:
     case = {
         "case_id": "unknown_faq_no_match",
         "category": "expected_no_match",
@@ -244,27 +278,35 @@ def test_unknown_faq_case_keeps_not_found_behavior_and_original_keyword() -> Non
     }
     stored = {
         "tool_calls": [
-            {"name": "query_faq", "args": {"keyword": "运费险"}, "id": "call-unknown"}
+            {"name": "query_faq", "args": {"keyword": actual_keyword}, "id": "call-unknown"}
         ],
         "tool_results": [{"status": "not_found", "data": []}],
         "ticket_results": [],
         "final_answer": "没有找到包含“运费险”的 FAQ。",
     }
-    replay = _replay(keyword="运费险", row_count=0, rows=[])
+    replay = _replay(keyword=replay_keyword, row_count=0, rows=[])
     evaluated = evaluate_live_prompts._evaluate_case(
         case,
         [("done", {"finish_reason": "stop"})],
         stored,
         evidence_mode="live_api_real_tools",
     )
+    assert evaluated["checks"]["original_faq_keyword_preserved"] is keyword_is_valid
 
     evaluate_live_prompts._apply_postage_sql_replay_checks(
-        evaluated, replay, "运费险", expect_hit=False
+        evaluated,
+        replay,
+        "运费险",
+        expect_hit=False,
+        actual_keyword=actual_keyword,
+        user_message=case["user_message"],
     )
 
     assert evaluated["checks"]["actual_faq_query_returned_zero_rows"] is True
     assert evaluated["checks"]["faq_sql_replay_returns_zero_rows"] is True
-    assert evaluated["deterministic_checks_pass"] is True
+    assert evaluated["checks"]["faq_sql_replay_keyword_matches_actual_call"] is should_pass
+    assert evaluated["checks"]["faq_sql_replay_limit_is_five"] is True
+    assert evaluated["deterministic_checks_pass"] is should_pass
 
 
 def test_active_cases_encode_migrated_faq_policy_and_a_real_unknown_query() -> None:
@@ -288,7 +330,19 @@ def test_active_cases_encode_migrated_faq_policy_and_a_real_unknown_query() -> N
     ("result_answer", "final_answer", "should_pass"),
     [
         pytest.param("7 天内支持无理由退货，7 天从签收之日起算。", "7 天从签收之日起算。", True, id="seven-days"),
+        pytest.param(
+            "7 天内支持无理由退货，7 天从签收之日起算。",
+            "支持 **7 天无理由退货**；7 天从**签收之日**起算。",
+            True,
+            id="markdown-and-separated-receipt-clock",
+        ),
         pytest.param("符合条件的商品可在签收后 30 天内申请退货。", "30 天内可以申请。", False, id="stale-thirty-days"),
+        pytest.param(
+            "7 天内支持无理由退货，7 天从签收之日起算。",
+            "支持 7 天无理由退货，期限从下单之日起算。",
+            False,
+            id="wrong-order-date-clock",
+        ),
     ],
 )
 def test_return_policy_eval_rejects_stale_window(
