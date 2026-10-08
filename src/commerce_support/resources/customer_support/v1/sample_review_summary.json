@@ -8,11 +8,11 @@
     "D_absent": 60
   },
   "rag_dispositions": {
-    "positive": 184,
-    "partial": 54,
+    "positive": 187,
+    "partial": 50,
     "clarify": 3,
-    "no_evidence": 58,
-    "explicit_negative": 1
+    "explicit_negative": 2,
+    "no_evidence": 58
   },
   "auxiliary_counts": {
     "extract": 5,
